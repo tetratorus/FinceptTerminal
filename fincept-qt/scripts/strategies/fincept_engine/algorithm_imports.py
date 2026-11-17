@@ -1519,20 +1519,16 @@ if not hasattr(SecurityIdentifier, 'generate_constituent_identifier'):
     )
     SecurityIdentifier.GenerateConstituentIdentifier = SecurityIdentifier.generate_constituent_identifier
 
-# --- ImpliedVolatility indicator ---
-class ImpliedVolatility(IndicatorBase):
-    def __init__(self, *args, **kwargs):
-        name = args[0] if args and isinstance(args[0], str) else 'IV'
-        super().__init__(name, 1)
-    def _compute(self, value: float) -> float:
-        return 0.25  # Default IV
-
 # --- Tiingo alias ---
 class Tiingo:
     """Tiingo data type stub."""
     def __init__(self):
         self.symbol = None; self.time = None; self.close = 0; self.value = 0
         self.high = 0; self.low = 0; self.open = 0; self.volume = 0
+    @staticmethod
+    def set_auth_code(code):
+        pass
+    SetAuthCode = set_auth_code
 
 class TiingoPrice(Tiingo):
     pass
@@ -1551,19 +1547,6 @@ class LeanData:
     GenerateZipFileName = generate_zip_file_name
     GenerateZipEntryName = generate_zip_entry_name
 
-# --- SymbolPropertiesDatabase ---
-class SymbolPropertiesDatabase:
-    @staticmethod
-    def from_data_folder():
-        return SymbolPropertiesDatabase()
-    def get_symbol_properties(self, market, symbol, security_type, currency="USD"):
-        from .securities import SymbolProperties as SP
-        return SP()
-    def set_entry(self, *args, **kwargs):
-        pass
-    SetEntry = set_entry
-    GetSymbolProperties = get_symbol_properties
-
 # --- MarketHoursDatabase (alias from algorithm.py) ---
 from .algorithm import _MarketHoursDatabase, _SymbolPropertiesDatabase
 
@@ -1573,18 +1556,6 @@ class InterestRateProvider:
         pass
     def get_interest_rate(self, date):
         return 0.05  # 5% default rate
-
-# --- Tiingo top-level alias ---
-class Tiingo:
-    def __init__(self):
-        self.symbol = None; self.time = None; self.close = 0; self.value = 0
-    @staticmethod
-    def set_auth_code(code):
-        pass
-    SetAuthCode = set_auth_code
-
-class TiingoPrice(Tiingo):
-    pass
 
 # --- SymbolPropertiesDatabase alias ---
 SymbolPropertiesDatabase = _SymbolPropertiesDatabase
@@ -1660,8 +1631,7 @@ class DefaultExerciseModel:
     def get_exercise(self, parameters):
         return []
 
-# --- ImpliedVolatility with set_smoothing_function ---
-# Override the one defined earlier
+# --- ImpliedVolatility indicator ---
 class ImpliedVolatility(IndicatorBase):
     def __init__(self, *args, **kwargs):
         name = args[0] if args and isinstance(args[0], str) else 'IV'
