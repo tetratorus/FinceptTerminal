@@ -3045,13 +3045,20 @@ class SeriesType:
 
 class NotificationManager:
     """Notification stub."""
-    def email(self, to, subject, body):
+    def email(self, to, subject, body, data="", headers=None):
         pass
 
     def sms(self, phone, message):
         pass
 
-    def web(self, url, data=None):
+    def web(self, url, data=None, headers=None):
+        pass
+
+    def ftp(self, hostname, username, password, file_path, file_content, secure=True, port=None):
+        pass
+
+    def sftp(self, hostname, username, *args, port=None):
+        """sftp(host, user, password, path, content) or sftp(host, user, private_key, passphrase, path, content)."""
         pass
 
 

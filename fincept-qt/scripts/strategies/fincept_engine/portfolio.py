@@ -165,6 +165,7 @@ class SecurityPortfolioManager:
 
     Cash = property(lambda self: self.cash)
     Invested = property(lambda self: self.invested)
+    hold_stock = property(lambda self: self.invested)
     TotalHoldingsValue = property(lambda self: self.total_holdings_value)
     TotalPortfolioValue = property(lambda self: self.total_portfolio_value)
     TotalUnrealizedProfit = property(lambda self: self.total_unrealized_profit)
