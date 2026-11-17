@@ -1,9 +1,12 @@
 #include "SurfaceCsvImporter.h"
 
+#include <QByteArray>
 #include <QFile>
 #include <QStringList>
 #include <QTextStream>
 
+#include <climits>
+#include <cmath>
 #include <cstdlib>
 #include <stdexcept>
 #include <string>
@@ -50,19 +53,45 @@ std::vector<std::vector<std::string>> parse_csv_file(const QString& path, std::s
     return rows;
 }
 
-static float to_f(const std::string& s) {
-    try {
-        return std::stof(s);
-    } catch (...) {
-        return 0.0f;
-    }
+// A numeric cell must parse in full ("12abc", "abc", "N/A" and "" are rejected rather
+// than imported as 12 or 0). Parsing is locale-independent, so "1.5" means 1.5 whatever
+// the user's system locale. Integer columns also accept integral decimals like "30.0".
+static bool to_f(const std::string& s, float& out) {
+    bool ok = false;
+    out = QByteArray::fromStdString(s).toFloat(&ok);
+    return ok;
 }
-static int to_i(const std::string& s) {
-    try {
-        return std::stoi(s);
-    } catch (...) {
-        return 0;
-    }
+static bool to_i(const std::string& s, int& out) {
+    const QByteArray b = QByteArray::fromStdString(s);
+    bool ok = false;
+    out = b.toInt(&ok);
+    if (ok)
+        return true;
+    const double d = b.toDouble(&ok);
+    if (!ok || d != std::floor(d) || d < INT_MIN || d > INT_MAX)
+        return false;
+    out = static_cast<int>(d);
+    return true;
+}
+
+static std::string bad_cell(size_t row, size_t col, const std::string& s) {
+    return "row " + std::to_string(row + 1) + " after the header, column " + std::to_string(col + 1) + ": \"" + s +
+           "\" is not a valid number";
+}
+
+// Reads rows[row][col] into `out`, or sets `err` naming the cell and returns false.
+template <typename T>
+static bool read_num(const std::vector<std::vector<std::string>>& rows, size_t row, size_t col, T& out,
+                     std::string& err) {
+    const std::string& s = rows[row][col];
+    bool ok;
+    if constexpr (std::is_same_v<T, int>)
+        ok = to_i(s, out);
+    else
+        ok = to_f(s, out);
+    if (!ok)
+        err = bad_cell(row, col, s);
+    return ok;
 }
 
 // ---- Vol Surface: strike, dte, iv ----
@@ -75,10 +104,12 @@ bool load_vol_surface(const std::vector<std::vector<std::string>>& rows, Volatil
     std::vector<float> strikes_seen;
     std::vector<int> dtes_seen;
     std::map<std::pair<int, float>, float> data_map;
-    for (const auto& r : rows) {
-        float strike = to_f(r[0]);
-        int dte = to_i(r[1]);
-        float iv = to_f(r[2]);
+    for (size_t i = 0; i < rows.size(); ++i) {
+        float strike;
+        int dte;
+        float iv;
+        if (!read_num(rows, i, 0, strike, err) || !read_num(rows, i, 1, dte, err) || !read_num(rows, i, 2, iv, err))
+            return false;
         if (std::find(strikes_seen.begin(), strikes_seen.end(), strike) == strikes_seen.end())
             strikes_seen.push_back(strike);
         if (std::find(dtes_seen.begin(), dtes_seen.end(), dte) == dtes_seen.end())
@@ -121,10 +152,12 @@ bool load_skew_surface(const std::vector<std::vector<std::string>>& rows, SkewSu
     std::vector<float> deltas_seen;
     std::vector<int> dtes_seen;
     std::map<std::pair<int, int>, float> data_map;
-    for (const auto& r : rows) {
-        float delta = to_f(r[0]);
-        int dte = to_i(r[1]);
-        float skew = to_f(r[2]);
+    for (size_t i = 0; i < rows.size(); ++i) {
+        float delta;
+        int dte;
+        float skew;
+        if (!read_num(rows, i, 0, delta, err) || !read_num(rows, i, 1, dte, err) || !read_num(rows, i, 2, skew, err))
+            return false;
         if (std::find(deltas_seen.begin(), deltas_seen.end(), delta) == deltas_seen.end())
             deltas_seen.push_back(delta);
         if (std::find(dtes_seen.begin(), dtes_seen.end(), dte) == dtes_seen.end())
@@ -165,18 +198,23 @@ static bool load_generic_matrix(const std::vector<std::vector<std::string>>& row
     std::vector<RowT> row_keys;
     std::vector<ColT> col_keys;
     std::map<std::pair<RowT, ColT>, float> data_map;
-    for (const auto& r : rows) {
+    for (size_t i = 0; i < rows.size(); ++i) {
+        const auto& r = rows[i];
         RowT rk;
         ColT ck;
-        if constexpr (std::is_same_v<RowT, int>)
-            rk = to_i(r[0]);
-        else
+        if constexpr (std::is_same_v<RowT, int>) {
+            if (!read_num(rows, i, 0, rk, err))
+                return false;
+        } else
             rk = r[0];
-        if constexpr (std::is_same_v<ColT, int>)
-            ck = to_i(r[1]);
-        else
+        if constexpr (std::is_same_v<ColT, int>) {
+            if (!read_num(rows, i, 1, ck, err))
+                return false;
+        } else
             ck = r[1];
-        float v = to_f(r[2]);
+        float v;
+        if (!read_num(rows, i, 2, v, err))
+            return false;
         if (std::find(row_keys.begin(), row_keys.end(), rk) == row_keys.end())
             row_keys.push_back(rk);
         if (std::find(col_keys.begin(), col_keys.end(), ck) == col_keys.end())
@@ -211,10 +249,12 @@ bool load_capfloor_vol(const std::vector<std::vector<std::string>>& rows, CapFlo
     std::vector<int> mats;
     std::vector<float> strikes;
     std::map<std::pair<int, float>, float> dm;
-    for (const auto& r : rows) {
-        int m = to_i(r[0]);
-        float s = to_f(r[1]);
-        float v = to_f(r[2]);
+    for (size_t i = 0; i < rows.size(); ++i) {
+        int m;
+        float s;
+        float v;
+        if (!read_num(rows, i, 0, m, err) || !read_num(rows, i, 1, s, err) || !read_num(rows, i, 2, v, err))
+            return false;
         if (std::find(mats.begin(), mats.end(), m) == mats.end())
             mats.push_back(m);
         if (std::find(strikes.begin(), strikes.end(), s) == strikes.end())
@@ -258,10 +298,12 @@ bool load_fx_vol(const std::vector<std::vector<std::string>>& rows, FXVolData& o
     std::vector<int> tenors;
     std::vector<float> deltas;
     std::map<std::pair<int, float>, float> dm;
-    for (const auto& r : rows) {
-        int t = to_i(r[0]);
-        float d = to_f(r[1]);
-        float v = to_f(r[2]);
+    for (size_t i = 0; i < rows.size(); ++i) {
+        int t;
+        float d;
+        float v;
+        if (!read_num(rows, i, 0, t, err) || !read_num(rows, i, 1, d, err) || !read_num(rows, i, 2, v, err))
+            return false;
         if (std::find(tenors.begin(), tenors.end(), t) == tenors.end())
             tenors.push_back(t);
         if (std::find(deltas.begin(), deltas.end(), d) == deltas.end())
@@ -330,9 +372,12 @@ bool load_correlation(const std::vector<std::vector<std::string>>& rows, Correla
     out = {};
     std::vector<std::string> assets;
     std::map<std::pair<std::string, std::string>, float> dm;
-    for (const auto& r : rows) {
+    for (size_t i = 0; i < rows.size(); ++i) {
+        const auto& r = rows[i];
         std::string a = r[0], b = r[1];
-        float v = to_f(r[2]);
+        float v;
+        if (!read_num(rows, i, 2, v, err))
+            return false;
         if (std::find(assets.begin(), assets.end(), a) == assets.end())
             assets.push_back(a);
         if (std::find(assets.begin(), assets.end(), b) == assets.end())
@@ -360,10 +405,12 @@ bool load_var(const std::vector<std::vector<std::string>>& rows, VaRData& out, s
     std::vector<float> confs;
     std::vector<int> horizons;
     std::map<std::pair<float, int>, float> dm;
-    for (const auto& r : rows) {
-        float c = to_f(r[0]);
-        int h = to_i(r[1]);
-        float v = to_f(r[2]);
+    for (size_t i = 0; i < rows.size(); ++i) {
+        float c;
+        int h;
+        float v;
+        if (!read_num(rows, i, 0, c, err) || !read_num(rows, i, 1, h, err) || !read_num(rows, i, 2, v, err))
+            return false;
         if (std::find(confs.begin(), confs.end(), c) == confs.end())
             confs.push_back(c);
         if (std::find(horizons.begin(), horizons.end(), h) == horizons.end())
