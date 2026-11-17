@@ -97,7 +97,9 @@ ForgotPasswordScreen::ForgotPasswordScreen(QWidget* parent) : QWidget(parent) {
     root->addLayout(overlay, 1);
 
     pages_ = new QStackedWidget;
+#ifndef Q_OS_IOS  // a 480px floor is wider than an iPhone screen
     pages_->setMinimumWidth(480);
+#endif
     pages_->setMaximumWidth(620);
     pages_->setStyleSheet("background: transparent;");
 

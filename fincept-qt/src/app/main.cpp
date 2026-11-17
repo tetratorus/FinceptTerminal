@@ -1339,7 +1339,11 @@ int main(int argc, char* argv[]) {
         const int primary_id = saved_ids.isEmpty() ? 0 : saved_ids.first();
         auto* primary = new fincept::WindowFrame(primary_id);
         primary->setAttribute(Qt::WA_DeleteOnClose);
+#ifdef Q_OS_IOS
+        primary->showMaximized();  // fill the screen's safe area
+#else
         primary->show();
+#endif
 
         // Smoke test: once the window has painted, walk every screen and exit
         // with the result. Deferred so the shell + router are fully wired. The

@@ -275,7 +275,9 @@ WindowFrame::WindowFrame(int window_id, QWidget* parent, const WindowId& adopted
     // Minimum size must be small enough to allow OS window-snap (half/third screen).
     // On a 1920-wide display, left-snap = 960px. Use 800x500 as minimum so snapping
     // works on any 1080p+ monitor without the window bouncing back to centre.
+#ifndef Q_OS_IOS  // iOS windows are the screen size; an 800px floor overflows an iPhone
     setMinimumSize(800, 500);
+#endif
 
     // Primary windows (id 0) restore saved geometry from last session.
     // Secondary windows (id > 0) restore their own saved geometry if available,
@@ -358,6 +360,12 @@ WindowFrame::WindowFrame(int window_id, QWidget* parent, const WindowId& adopted
     auth_stack_ = new QStackedWidget;
     setup_auth_screens();
     master_stack->addWidget(auth_stack_);
+#ifdef Q_OS_IOS
+    // A stack's minimum is its widest page (hidden ones too), which would push
+    // the window past the phone screen; let the screen size win instead.
+    master_stack->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
+    auth_stack_->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Ignored);
+#endif
 
     // ── Chat Mode ─────────────────────────────────────────────────────────────
     chat_mode_screen_ = new chat_mode::ChatModeScreen;
