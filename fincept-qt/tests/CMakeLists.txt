@@ -23,7 +23,7 @@
 # signal about the unit, not about this file: extract the pure logic into a small
 # header (or a leaf .cpp) and test that. Do not grow the link line.
 #
-# Current cost of the whole suite: 4 executables, 7 translation units.
+# Current cost of the whole suite: 5 executables, 9 translation units.
 # ─────────────────────────────────────────────────────────────────────────────
 
 # Qt Test ships with every Qt installation, so this adds no new dependency.
@@ -127,4 +127,11 @@ fincept_add_test(tst_indicator_engine
     tst_indicator_engine.cpp
     "${PROJECT_SOURCE_DIR}/src/algo_engine/IndicatorEngine.cpp")
 
-message(STATUS "Fincept tests: tst_broker_modify_fields, tst_result, tst_order_validator, tst_indicator_engine")
+# src/screens/surface_analytics/SurfaceCsvImporter.{h,cpp}: the .cpp includes
+# only its own header, which includes only SurfaceTypes.h (plain structs, no .cpp
+# of its own). One extra TU, Qt Core only.
+fincept_add_test(tst_surface_csv_importer
+    tst_surface_csv_importer.cpp
+    "${PROJECT_SOURCE_DIR}/src/screens/surface_analytics/SurfaceCsvImporter.cpp")
+
+message(STATUS "Fincept tests: tst_broker_modify_fields, tst_result, tst_order_validator, tst_indicator_engine, tst_surface_csv_importer")
