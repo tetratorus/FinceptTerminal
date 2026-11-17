@@ -362,7 +362,7 @@ void NewsScreen::connect_signals() {
     // Language filter
     connect(command_bar_, &NewsCommandBar::language_filter_changed, this, [this](const QString& lang) {
         active_lang_ = lang.isEmpty() ? QStringLiteral("ALL") : lang;
-        visible_article_count_ = PAGE_SIZE;
+        visible_article_count_ = kPageSize;
         QSettings s;
         s.beginGroup("news");
         s.setValue("language", active_lang_);
@@ -679,7 +679,7 @@ void NewsScreen::unsubscribe_mcp_events() {
 
 void NewsScreen::on_category_changed(const QString& category) {
     active_category_ = category;
-    visible_article_count_ = PAGE_SIZE;
+    visible_article_count_ = kPageSize;
     QSettings s;
     s.beginGroup("news");
     s.setValue("category", category);
@@ -690,7 +690,7 @@ void NewsScreen::on_category_changed(const QString& category) {
 
 void NewsScreen::on_time_range_changed(const QString& range) {
     time_range_ = range;
-    visible_article_count_ = PAGE_SIZE;
+    visible_article_count_ = kPageSize;
     QSettings s;
     s.beginGroup("news");
     s.setValue("time_range", range);
@@ -726,7 +726,7 @@ void NewsScreen::on_search_changed(const QString& query) {
 void NewsScreen::apply_search(const QString& query, bool is_symbol) {
     search_query_ = query;
     symbol_filter_ = is_symbol && !query.trimmed().isEmpty();
-    visible_article_count_ = PAGE_SIZE;
+    visible_article_count_ = kPageSize;
     ScreenStateManager::instance().notify_changed(this);
     apply_filters_async();
 }
@@ -860,7 +860,7 @@ void NewsScreen::on_cluster_clicked(const services::NewsCluster& cluster) {
 void NewsScreen::on_near_bottom() {
     if (visible_article_count_ >= filtered_articles_.size())
         return;
-    visible_article_count_ += PAGE_SIZE;
+    visible_article_count_ += kPageSize;
     auto visible = filtered_articles_.mid(0, visible_article_count_);
     feed_panel_->model()->set_wire_articles(visible);
     LOG_INFO("NewsScreen", QString("Lazy-loaded to %1 articles").arg(visible.size()));
@@ -869,7 +869,7 @@ void NewsScreen::on_near_bottom() {
 void NewsScreen::on_sidebar_category_clicked(const QString& category) {
     active_category_ = category;
     command_bar_->set_active_category(category);
-    visible_article_count_ = PAGE_SIZE;
+    visible_article_count_ = kPageSize;
     apply_filters_async();
 }
 

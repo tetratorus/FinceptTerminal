@@ -1210,6 +1210,13 @@ int main(int argc, char* argv[]) {
         LOG_INFO("Smoke", "Smoke-test mode — forcing normal boot, skipping setup/recovery");
         setup_status.needs_setup = false;
     }
+#ifdef Q_OS_ANDROID
+    // No embedded Python runtime on Android (uv/python cannot be provisioned
+    // inside the app sandbox): boot straight into the terminal, Python-backed
+    // features stay unavailable.
+    setup_status.needs_setup = false;
+    setup_status.needs_package_sync = false;
+#endif
 
     if (setup_status.needs_setup) {
         LOG_INFO("App", "Python environment not ready — showing setup screen");

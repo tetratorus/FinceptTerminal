@@ -61,7 +61,7 @@ class PolymarketBrowsePanel : public QWidget {
 
     int current_page_ = 0;
     bool events_mode_ = false;
-    static constexpr int PAGE_SIZE = 20;
+    static constexpr int kPageSize = 20;
 };
 
 } // namespace fincept::screens::polymarket

@@ -774,12 +774,18 @@ endif()
 set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(BUILD_STATIC   ON  CACHE BOOL "" FORCE)  # static lib: simpler deployment, no extra DLL
 set(QT_VERSION_MAJOR 6 CACHE STRING "" FORCE)
+set(_ft_qtads_patch "")
+if(ANDROID)
+    set(_ft_qtads_patch PATCH_COMMAND "${CMAKE_COMMAND}" -DADS_SRC=<SOURCE_DIR>
+        -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/qtads_android_patch.cmake")
+endif()
 FetchContent_Declare(
     QtADS
     GIT_REPOSITORY https://github.com/githubuser0xFFFF/Qt-Advanced-Docking-System.git
     GIT_TAG        87cffe5d40307c61141c88b88c10c5e7d181d880  # 4.5.0
     GIT_SHALLOW    TRUE
     UPDATE_DISCONNECTED TRUE
+    ${_ft_qtads_patch}
 )
 set(ADS_VERSION "4.5.0" CACHE STRING "" FORCE)   # skip git_describe() in qtads CMakeLists
 # qtads src/CMakeLists.txt does include(Versioning) unconditionally but only adds
@@ -2909,7 +2915,14 @@ else()
     set(_FINCEPT_PLATFORM_SOURCES "")
 endif()
 
-add_executable(FinceptTerminal ${_FINCEPT_EXE_FLAGS}
+# Android: qt_add_executable builds the app as a shared library and adds the
+# FinceptTerminal_make_apk target (androiddeployqt).
+if(ANDROID)
+    set(_FINCEPT_ADD_EXE qt_add_executable)
+else()
+    set(_FINCEPT_ADD_EXE add_executable)
+endif()
+cmake_language(CALL ${_FINCEPT_ADD_EXE} FinceptTerminal ${_FINCEPT_EXE_FLAGS}
     ${CORE_SOURCES}
     ${NETWORK_SOURCES}
     ${DATAHUB_SOURCES}
@@ -2932,6 +2945,12 @@ add_executable(FinceptTerminal ${_FINCEPT_EXE_FLAGS}
 target_include_directories(FinceptTerminal PRIVATE
     src
 )
+if(ANDROID)
+    set_target_properties(FinceptTerminal PROPERTIES
+        QT_ANDROID_PACKAGE_NAME "com.fincept.terminal"
+        QT_ANDROID_APP_NAME "Fincept Terminal"
+        QT_ANDROID_VERSION_NAME "${PROJECT_VERSION}")
+endif()
 
 
 
@@ -3200,7 +3219,34 @@ if(OPENSSL_ROOT_DIR)
     message(STATUS "OPENSSL_ROOT_DIR: ${OPENSSL_ROOT_DIR}")
 endif()
 
-find_package(OpenSSL REQUIRED)
+if(ANDROID)
+    # Prebuilt OpenSSL 3 from https://github.com/KDAB/android_openssl
+    # (FINCEPT_ANDROID_OPENSSL_ROOT = <checkout>/no-asm/ssl_3).
+    set(FINCEPT_ANDROID_OPENSSL_ROOT "$ENV{FINCEPT_ANDROID_OPENSSL_ROOT}" CACHE PATH
+        "KDAB android_openssl ssl_3 dir (contains include/ and <abi>/)")
+    set(OPENSSL_INCLUDE_DIR "${FINCEPT_ANDROID_OPENSSL_ROOT}/include")
+    set(_ft_ssl_lib_dir "${FINCEPT_ANDROID_OPENSSL_ROOT}/${CMAKE_ANDROID_ARCH_ABI}")
+    foreach(_ft_ssl IN ITEMS Crypto SSL)
+        string(TOLOWER "${_ft_ssl}" _ft_ssl_lc)
+        if(_ft_ssl_lc STREQUAL "ssl")
+            set(_ft_ssl_file "${_ft_ssl_lib_dir}/libssl_3.so")
+        else()
+            set(_ft_ssl_file "${_ft_ssl_lib_dir}/libcrypto_3.so")
+        endif()
+        if(NOT EXISTS "${_ft_ssl_file}")
+            message(FATAL_ERROR "Android OpenSSL not found: ${_ft_ssl_file}")
+        endif()
+        add_library(OpenSSL::${_ft_ssl} SHARED IMPORTED)
+        set_target_properties(OpenSSL::${_ft_ssl} PROPERTIES
+            IMPORTED_LOCATION "${_ft_ssl_file}"
+            INTERFACE_INCLUDE_DIRECTORIES "${OPENSSL_INCLUDE_DIR}")
+        list(APPEND _ft_android_extra_libs "${_ft_ssl_file}")
+    endforeach()
+    set_property(TARGET FinceptTerminal APPEND PROPERTY QT_ANDROID_EXTRA_LIBS ${_ft_android_extra_libs})
+    set(OPENSSL_VERSION "3 (android_openssl)")
+else()
+    find_package(OpenSSL REQUIRED)
+endif()
 message(STATUS "OpenSSL found: ${OPENSSL_VERSION} — include: ${OPENSSL_INCLUDE_DIR}")
 
 # zlib: gzip (Upstox master) + zip (Shoonya symbol masters) decompression.
@@ -3785,7 +3831,8 @@ else()
     # ARM64 cross-compile, configure with `-DCMAKE_SYSTEM_PROCESSOR=aarch64`
     # and an aarch64 Qt SDK on CMAKE_PREFIX_PATH.
     install(TARGETS FinceptTerminal
-            RUNTIME DESTINATION "bin" COMPONENT core)
+            RUNTIME DESTINATION "bin" COMPONENT core
+            LIBRARY DESTINATION "lib" COMPONENT core)  # Android builds a .so
 
     # Qt Wayland QPA plugin — required so the app renders correctly on
     # Wayland sessions (Fedora 36+, Ubuntu 22.04+ default to Wayland).
