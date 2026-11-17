@@ -389,8 +389,8 @@ PythonRunner::PythonRunner() {
     while (remote_url_.endsWith('/'))
         remote_url_.chop(1);
     if (!remote_url_.isEmpty())
-        LOG_INFO("Python", "Services gateway: " + remote_url_ +
-                               " (routed scripts run in services, the rest in local Python)");
+        LOG_INFO("Python",
+                 "Services gateway: " + remote_url_ + " (routed scripts run in services, the rest in local Python)");
 
     // Try fast, non-blocking venv detection first
     python_path_ = find_python_sync();
@@ -670,8 +670,9 @@ static void finalize_script_output(PythonResult& result, const QString& stdout_s
     if (result.success && !parsed) {
         result.success = false;
         if (result.error.isEmpty()) {
-            result.error = json_out.isEmpty() ? QStringLiteral("script produced no JSON payload")
-                                              : QStringLiteral("script produced malformed JSON: %1").arg(pe.errorString());
+            result.error = json_out.isEmpty()
+                               ? QStringLiteral("script produced no JSON payload")
+                               : QStringLiteral("script produced malformed JSON: %1").arg(pe.errorString());
         }
     }
     // A script-level {"error": ...} envelope is a failure even on exit 0 — and
@@ -853,7 +854,7 @@ void PythonRunner::run_remote(const QString& script, const QStringList& args, co
         net_ = new QNetworkAccessManager(this);
 
     const bool is_code = script == QLatin1String("__code__");
-    const int timeout_ms = is_code ? kLongRunTimeoutMs
+    const int timeout_ms = is_code                                   ? kLongRunTimeoutMs
                            : (opts.timeout_ms == kTimeoutFromScript) ? default_timeout_for_script(script)
                                                                      : opts.timeout_ms;
     const QUrl url(remote_url_ + (is_code ? QStringLiteral("/v1/code") : QStringLiteral("/v1/scripts/") + script));
@@ -918,12 +919,13 @@ void PythonRunner::run_remote(const QString& script, const QStringList& args, co
                 const QJsonObject obj = QJsonDocument::fromJson(raw).object();
                 const QString service = obj.value("service").toString(QStringLiteral("gateway"));
                 if (status != 200) {
-                    QString err = status == 0 ? QString("Fincept services unreachable at %1: %2")
-                                                    .arg(remote_url_, reply->errorString())
-                                              : QString("%1 service failed (HTTP %2): %3")
-                                                    .arg(service)
-                                                    .arg(status)
-                                                    .arg(obj.value("error").toString(reply->errorString()));
+                    QString err =
+                        status == 0
+                            ? QString("Fincept services unreachable at %1: %2").arg(remote_url_, reply->errorString())
+                            : QString("%1 service failed (HTTP %2): %3")
+                                  .arg(service)
+                                  .arg(status)
+                                  .arg(obj.value("error").toString(reply->errorString()));
                     LOG_ERROR("Python", QString("Remote %1: %2").arg(script, err));
                     cb({false, {}, err, -1});
                     return;

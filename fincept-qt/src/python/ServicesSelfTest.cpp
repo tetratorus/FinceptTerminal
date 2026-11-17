@@ -72,9 +72,9 @@ int run_services_selftest() {
     });
     std::printf("       quote round trip %lld ms\n", static_cast<long long>(t.elapsed()));
 
-    auto hist = run_script(QStringLiteral("yfinance_data.py"),
-                           {QStringLiteral("historical_period"), QStringLiteral("MSFT"), QStringLiteral("1mo"),
-                            QStringLiteral("1d")});
+    auto hist =
+        run_script(QStringLiteral("yfinance_data.py"), {QStringLiteral("historical_period"), QStringLiteral("MSFT"),
+                                                        QStringLiteral("1mo"), QStringLiteral("1d")});
     expect_up(QStringLiteral("market-data"), QStringLiteral("MSFT 1mo history"), hist, [](const PythonResult& r) {
         const auto doc = QJsonDocument::fromJson(r.output.toUtf8());
         return doc.isArray() ? doc.array().size() > 10 : doc.object().size() > 0;
