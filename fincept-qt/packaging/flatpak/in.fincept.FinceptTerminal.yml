@@ -1,6 +1,6 @@
 id: in.fincept.FinceptTerminal
 runtime: org.kde.Platform
-runtime-version: '6.8'
+runtime-version: '6.11'
 sdk: org.kde.Sdk
 command: FinceptTerminal
 

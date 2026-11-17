@@ -78,7 +78,7 @@ Enterprise benötigt ein eigenes Konto — kostenlose Fincept-Logins funktionier
 
 Fertige Installationsprogramme für **Windows x64**, **Linux x64** (`.run` / `.deb` / `.rpm`) und **macOS (Apple Silicon)** finden Sie auf der [Releases-Seite](https://github.com/Fincept-Corporation/FinceptTerminal/releases/latest).
 
-**Aus dem Quellcode bauen** — Linux/macOS: `git clone … && ./setup.sh`. Windows, manuelle Builds, die fixierte Toolchain (**CMake 3.27.7 · Ninja 1.11.1 · Qt 6.8.3 · Python 3.11.9**) und Fehlerbehebung stehen in **[docs/GETTING_STARTED.md](../GETTING_STARTED.md)**. Die Versionen sind fixiert — neuere oder ältere werden nicht unterstützt.
+**Aus dem Quellcode bauen** — Linux/macOS: `git clone … && ./setup.sh`. Windows, manuelle Builds, die fixierte Toolchain (**CMake 3.27.7 · Ninja 1.11.1 · Qt 6.11.2 · Python 3.11.9**) und Fehlerbehebung stehen in **[docs/GETTING_STARTED.md](../GETTING_STARTED.md)**. Die Versionen sind fixiert — neuere oder ältere werden nicht unterstützt.
 
 > Sie suchen den Enterprise-Build? Er hat eigene signierte Installer für Windows, macOS und Linux hinter einem Enterprise-Login — [hier erhältlich](https://fincept.in/enterprise).
 

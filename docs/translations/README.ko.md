@@ -78,7 +78,7 @@ Enterprise는 별도 계정이 필요합니다 — 무료 Fincept 계정으로�
 
 **Windows x64**, **Linux x64**(`.run` / `.deb` / `.rpm`), **macOS(애플 실리콘)** 설치 파일은 [릴리스 페이지](https://github.com/Fincept-Corporation/FinceptTerminal/releases/latest)에 있습니다.
 
-**소스에서 빌드** — Linux/macOS: `git clone … && ./setup.sh`. Windows, 수동 빌드, 고정된 툴체인(**CMake 3.27.7 · Ninja 1.11.1 · Qt 6.8.3 · Python 3.11.9**), 문제 해결은 **[docs/GETTING_STARTED.md](../GETTING_STARTED.md)** 를 참고하세요. 버전은 고정되어 있으며 그보다 높거나 낮은 버전은 지원되지 않습니다.
+**소스에서 빌드** — Linux/macOS: `git clone … && ./setup.sh`. Windows, 수동 빌드, 고정된 툴체인(**CMake 3.27.7 · Ninja 1.11.1 · Qt 6.11.2 · Python 3.11.9**), 문제 해결은 **[docs/GETTING_STARTED.md](../GETTING_STARTED.md)** 를 참고하세요. 버전은 고정되어 있으며 그보다 높거나 낮은 버전은 지원되지 않습니다.
 
 > Enterprise 빌드를 찾으시나요? Windows, macOS, Linux용 서명된 설치 파일이 Enterprise 로그인 뒤에 준비되어 있습니다 — [여기서 받으세요](https://fincept.in/enterprise).
 

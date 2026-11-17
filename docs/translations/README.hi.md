@@ -78,7 +78,7 @@ Enterprise के लिए अलग खाता चाहिए — मुफ
 
 **Windows x64**, **Linux x64** (`.run` / `.deb` / `.rpm`) और **macOS (Apple silicon)** के इंस्टॉलर [रिलीज़ पेज](https://github.com/Fincept-Corporation/FinceptTerminal/releases/latest) पर उपलब्ध हैं।
 
-**सोर्स से बिल्ड करें** — Linux/macOS: `git clone … && ./setup.sh`। Windows, मैनुअल बिल्ड, पिन किया गया टूलचेन (**CMake 3.27.7 · Ninja 1.11.1 · Qt 6.8.3 · Python 3.11.9**) और समस्या-निवारण **[docs/GETTING_STARTED.md](../GETTING_STARTED.md)** में हैं। संस्करण पिन किए गए हैं — नए या पुराने समर्थित नहीं हैं।
+**सोर्स से बिल्ड करें** — Linux/macOS: `git clone … && ./setup.sh`। Windows, मैनुअल बिल्ड, पिन किया गया टूलचेन (**CMake 3.27.7 · Ninja 1.11.1 · Qt 6.11.2 · Python 3.11.9**) और समस्या-निवारण **[docs/GETTING_STARTED.md](../GETTING_STARTED.md)** में हैं। संस्करण पिन किए गए हैं — नए या पुराने समर्थित नहीं हैं।
 
 > Enterprise बिल्ड चाहिए? उसके अपने साइन किए हुए इंस्टॉलर Windows, macOS और Linux के लिए Enterprise लॉगिन के पीछे हैं — [यहाँ से लें](https://fincept.in/enterprise)।
 

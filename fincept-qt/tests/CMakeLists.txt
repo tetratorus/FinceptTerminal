@@ -28,7 +28,7 @@
 
 # Qt Test ships with every Qt installation, so this adds no new dependency.
 # _FINCEPT_QT_VER_ARGS is inherited from the parent scope so the version pin
-# (6.8.3 EXACT by default) stays identical to the one the app is built against.
+# (6.11.2 EXACT by default) stays identical to the one the app is built against.
 find_package(Qt6 ${_FINCEPT_QT_VER_ARGS} QUIET COMPONENTS Test)
 if(NOT Qt6Test_FOUND)
     message(FATAL_ERROR

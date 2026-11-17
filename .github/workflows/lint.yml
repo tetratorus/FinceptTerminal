@@ -31,7 +31,7 @@ permissions:
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
-  QT_VERSION: "6.8.3"
+  QT_VERSION: "6.11.2"
   QT_MODULES: "qtcharts qtwebsockets qtmultimedia qtwebengine qtwebchannel qtpositioning qtserialport"
 
 jobs:
@@ -108,8 +108,8 @@ jobs:
           sudo update-alternatives --install /usr/bin/clang++ clang++ /usr/bin/clang++-18 100
           sudo update-alternatives --install /usr/bin/clang-tidy clang-tidy /usr/bin/clang-tidy-18 100
 
-      # Qt 6.8.3 from aqt, NOT apt: ubuntu-24.04 ships Qt 6.4 and CMakeLists.txt
-      # pins Qt 6.8 (FINCEPT_QT_PIN_MODE=MINOR), so the previous apt-based
+      # Qt 6.11.2 from aqt, NOT apt: ubuntu-24.04 ships Qt 6.4 and CMakeLists.txt
+      # pins Qt 6.11 (FINCEPT_QT_PIN_MODE=MINOR), so the previous apt-based
       # configure could never produce a compile database.
       - name: Install Qt ${{ env.QT_VERSION }}
         uses: jurplel/install-qt-action@v4

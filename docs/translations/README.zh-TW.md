@@ -78,7 +78,7 @@ Enterprise 需要獨立帳號 —— 免費 Fincept 帳號無法登入。
 
 **Windows x64**、**Linux x64**（`.run` / `.deb` / `.rpm`）與 **macOS（Apple 晶片）**的安裝檔請見 [Releases 頁面](https://github.com/Fincept-Corporation/FinceptTerminal/releases/latest)。
 
-**從原始碼建置** —— Linux/macOS：`git clone … && ./setup.sh`。Windows、手動建置、鎖定的工具鏈（**CMake 3.27.7 · Ninja 1.11.1 · Qt 6.8.3 · Python 3.11.9**）與疑難排解請見 **[docs/GETTING_STARTED.md](../GETTING_STARTED.md)**。版本已鎖定，更新或更舊的版本皆不支援。
+**從原始碼建置** —— Linux/macOS：`git clone … && ./setup.sh`。Windows、手動建置、鎖定的工具鏈（**CMake 3.27.7 · Ninja 1.11.1 · Qt 6.11.2 · Python 3.11.9**）與疑難排解請見 **[docs/GETTING_STARTED.md](../GETTING_STARTED.md)**。版本已鎖定，更新或更舊的版本皆不支援。
 
 > 在找 Enterprise 版本嗎？它有專屬的簽章安裝檔，支援 Windows、macOS 與 Linux，需以 Enterprise 帳號登入取得 —— [由此取得](https://fincept.in/enterprise)。
 

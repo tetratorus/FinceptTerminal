@@ -13,7 +13,7 @@ on:
 
 env:
   BUILD_TYPE: Release
-  QT_VERSION: "6.8.3"
+  QT_VERSION: "6.11.2"
   # qtserialport: the qtpositioning NMEA plugin (libqtposition_nmea) links
   # Qt6SerialPort; without it linuxdeploy/macdeployqt/windeployqt fail resolving
   # libQt6SerialPort. The app doesn't use serial GPS — this just satisfies deploy.
@@ -337,7 +337,7 @@ jobs:
           # are data files the dependency-closure gate can't see, so check here.
           if [ -f "${BUILD_DIR}/Qt6WebEngineCore.dll" ]; then
             WE_REQUIRED="QtWebEngineProcess.exe resources/icudtl.dat resources/qtwebengine_resources.pak"
-            # Required whenever this Qt kit ships one (Qt 6.8.3 x64 does) — its
+            # Required whenever this Qt kit ships one (Qt 6.8.3 x64 did) — its
             # absence kills every renderer at startup (#411).
             [ -f "${QT_ROOT_DIR}/resources/v8_context_snapshot.bin" ] && \
               WE_REQUIRED="${WE_REQUIRED} resources/v8_context_snapshot.bin"
@@ -745,7 +745,7 @@ jobs:
       # ubuntu-22.04 ships g++ 11.4 by default, but CMakeLists.txt enforces
       # GCC 12.3+. Install gcc-12/g++-12 and pin CC/CXX for the rest of the job.
       # We intentionally do NOT install apt Qt packages — ubuntu-22.04 ships
-      # Qt 6.2 and CMakeLists pins Qt 6.8.3 EXACT. Qt is installed via
+      # Qt 6.2 and CMakeLists pins Qt 6.11.2 EXACT. Qt is installed via
       # jurplel/install-qt-action below, matching the Windows and macOS jobs.
       # We still need the XCB / GL system libs so Qt's xcb platform plugin
       # can link at build time and load at runtime.
@@ -775,7 +775,7 @@ jobs:
           echo "CC=gcc-12"  >> "$GITHUB_ENV"
           echo "CXX=g++-12" >> "$GITHUB_ENV"
 
-      # ── Qt 6.8.3 (matches CMakeLists' Qt6 EXACT pin) ──────────────────────
+      # ── Qt 6.11.2 (matches CMakeLists' Qt6 EXACT pin) ──────────────────────
       - name: Install Qt ${{ env.QT_VERSION }}
         uses: jurplel/install-qt-action@v4
         with:
@@ -980,7 +980,7 @@ jobs:
           chmod +x linuxdeploy-x86_64.AppImage linuxdeploy-plugin-qt-x86_64.AppImage
 
           # linuxdeploy-plugin-qt uses qmake to locate Qt. Point it at the
-          # jurplel-installed Qt 6.8.3 rather than the (absent) apt qmake6.
+          # jurplel-installed Qt 6.11.2 rather than the (absent) apt qmake6.
           # Without this the plugin either no-ops or picks up system Qt.
           export PATH="${QT_ROOT_DIR}/bin:${PATH}"
           export LD_LIBRARY_PATH="${QT_ROOT_DIR}/lib:${LD_LIBRARY_PATH:-}"
@@ -1143,7 +1143,7 @@ jobs:
 
       # ── Stage the .deb/.rpm install tree (#415) ───────────────────────────
       # Both packages used to be `cmake --install --prefix /usr`: a bare binary
-      # linked against this runner's Qt 6.8.3 with no Qt in the package, so
+      # linked against this runner's Qt 6.11.2 with no Qt in the package, so
       # they failed at exec everywhere ("libQt6Charts.so.6: cannot open shared
       # object file") — no distro ships Qt 6.8, and the binary uses Qt private
       # API that is not ABI-stable across minor versions, so depending on the

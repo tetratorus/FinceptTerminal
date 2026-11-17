@@ -20,7 +20,7 @@
 #       → cross-build both archs in one go
 #
 # Pins (must match fincept-qt/CMakeLists.txt + release.yml):
-#   • Qt 6.8.3 EXACT                — aqtinstall (linux_gcc_64 / linux_gcc_arm64)
+#   • Qt 6.11.2 EXACT               — aqtinstall (linux_gcc_64 / linux_gcc_arm64)
 #   • GCC ≥ 12.3                    — Debian trixie g++-13
 #   • CMake 3.27.7                  — Kitware prebuilt (x86_64 / aarch64)
 #   • QT_MODULES = qtcharts qtwebsockets qtmultimedia
@@ -49,7 +49,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
     LC_ALL=C.UTF-8
 
 # Pins — overridable via `--build-arg` if you need to bump without editing.
-ARG QT_VERSION=6.8.3
+ARG QT_VERSION=6.11.2
 ARG CMAKE_VERSION=3.27.7
 
 # Architecture-dependent values. Qt 6.8 introduced `linux_gcc_arm64` as the
@@ -123,7 +123,7 @@ RUN . /etc/build.env \
     && rm /tmp/cmake.sh \
     && cmake --version
 
-# Qt 6.8.3 via aqtinstall. Modules match QT_MODULES in release.yml. Retry
+# Qt 6.11.2 via aqtinstall. Modules match QT_MODULES in release.yml. Retry
 # loop rides through transient drops from the Qt mirror. --break-system-packages
 # is required on trixie's PEP 668 pip.
 ENV QT_ROOT=/opt/Qt
@@ -156,14 +156,14 @@ RUN . /etc/build.env \
 # ── Stage 2: Runtime ─────────────────────────────────────────────────────────
 # Pinned to $TARGETPLATFORM so the final image actually matches the arch the
 # user requested (even when buildx cross-builds from a different BUILDPLATFORM).
-# Minimal runtime: we bundle Qt 6.8.3 from the builder stage so the image does
+# Minimal runtime: we bundle Qt 6.11.2 from the builder stage so the image does
 # not depend on Debian's (older) Qt packages. Qt pulls in EGL, GL, XCB, audio,
 # Kerberos, and the glib-networking TLS backend — missing any of these causes
 # HTTPS to silently fail or the app to crash on launch.
 FROM --platform=$TARGETPLATFORM debian:trixie-slim AS runtime
 
 ARG TARGETARCH
-ARG QT_VERSION=6.8.3
+ARG QT_VERSION=6.11.2
 
 ENV DEBIAN_FRONTEND=noninteractive \
     LANG=C.UTF-8 \
@@ -206,7 +206,7 @@ RUN set -eux; \
 
 ENV QT_ROOT=/opt/Qt
 
-# Bundle Qt 6.8.3 libs + plugins from builder stage. The builder writes under
+# Bundle Qt 6.11.2 libs + plugins from builder stage. The builder writes under
 # /opt/Qt/${QT_VERSION}/${arch-dependent}/ — the whole /opt/Qt tree copies
 # cleanly for either arch, since only one kit is installed per build.
 COPY --from=builder /opt/Qt /opt/Qt

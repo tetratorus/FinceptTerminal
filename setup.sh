@@ -10,7 +10,7 @@ for arg in "$@"; do
 done
 
 # ── Pinned versions (must match CMakeLists.txt) ─────────────
-QT_VERSION="6.8.3"
+QT_VERSION="6.11.2"
 PYTHON_MIN="3.11"
 CMAKE_MIN="3.27"
 GCC_MIN="12.3"
@@ -206,7 +206,7 @@ cd "$APP_DIR"
 
 echo "[6/7] Configuring (preset: $PRESET)..."
 # Override the preset's default CMAKE_PREFIX_PATH with the one we just set,
-# so the build picks up the aqtinstall location rather than ~/Qt/6.8.3/...
+# so the build picks up the aqtinstall location rather than ~/Qt/6.11.2/...
 EXTRA_ARGS=""
 if [ "$PLATFORM" = "macos" ]; then
     # Resolve the openssl@3 prefix from brew itself rather than hardcoding the

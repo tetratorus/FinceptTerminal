@@ -78,7 +78,7 @@ Enterprise には専用アカウントが必要です。無償の Fincept アカ
 
 **Windows x64**、**Linux x64**（`.run` / `.deb` / `.rpm`）、**macOS（Apple シリコン）**向けのインストーラーは[リリースページ](https://github.com/Fincept-Corporation/FinceptTerminal/releases/latest)にあります。
 
-**ソースからのビルド** — Linux/macOS: `git clone … && ./setup.sh`。Windows、手動ビルド、固定されたツールチェーン（**CMake 3.27.7 · Ninja 1.11.1 · Qt 6.8.3 · Python 3.11.9**）、トラブルシューティングは **[docs/GETTING_STARTED.md](../GETTING_STARTED.md)** を参照してください。バージョンは固定です。これより新しい／古いものはサポートされません。
+**ソースからのビルド** — Linux/macOS: `git clone … && ./setup.sh`。Windows、手動ビルド、固定されたツールチェーン（**CMake 3.27.7 · Ninja 1.11.1 · Qt 6.11.2 · Python 3.11.9**）、トラブルシューティングは **[docs/GETTING_STARTED.md](../GETTING_STARTED.md)** を参照してください。バージョンは固定です。これより新しい／古いものはサポートされません。
 
 > Enterprise ビルドをお探しですか。Windows、macOS、Linux 向けの署名済みインストーラーが Enterprise ログインの内側にあります — [こちらから入手](https://fincept.in/enterprise)。
 
