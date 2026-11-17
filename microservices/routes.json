@@ -1,0 +1,40 @@
+{
+  "_comment": "Single source of truth for which service owns which script. Patterns are regexes matched against the script path relative to fincept-qt/scripts. The first service (in order) with a matching pattern owns the script. Scripts nothing matches stay in the desktop app (local Python). Run gateway/gen_nginx.py after editing.",
+  "local_only": [
+    "aisstream_data\\.py",
+    "baostock_data\\.py",
+    "databento_[A-Za-z0-9_]+\\.py",
+    "prediction_(kalshi|polymarket)\\.py",
+    "spreadsheet\\.py"
+  ],
+  "services": [
+    {
+      "name": "market-data",
+      "description": "Quotes, history, search, company info (Yahoo Finance) with a warm worker pool",
+      "scripts": [
+        "yfinance_data\\.py",
+        "screener_data\\.py",
+        "fetch_peers\\.py",
+        "fetch_company_news\\.py",
+        "cboe_[A-Za-z0-9_]*\\.py"
+      ],
+      "code": false
+    },
+    {
+      "name": "analytics",
+      "description": "Quant, corporate finance, M&A, portfolio and technical analytics; notebook code cells",
+      "scripts": [
+        "Analytics/[A-Za-z0-9_/]+\\.py"
+      ],
+      "code": true
+    },
+    {
+      "name": "connectors",
+      "description": "Economics, government, central-bank and other data connectors",
+      "scripts": [
+        "[A-Za-z0-9_]+\\.py"
+      ],
+      "code": false
+    }
+  ]
+}

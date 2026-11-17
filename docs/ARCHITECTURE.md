@@ -25,6 +25,7 @@ Fincept Terminal v4 is a native C++20/Qt6 desktop application — a Bloomberg-st
 | Build target | one Qt6 desktop binary, per OS |
 
 This is a **modular monolith** by intent — single deployable, internally divided into bounded contexts with explicit dependency direction. Microservices are an anti-goal for the desktop runtime.
+The one exception is the Python back end: with `FINCEPT_SERVICES_URL` set, `PythonRunner` sends script calls to the optional services in [`microservices/`](../microservices/README.md) (market-data, analytics, connectors behind an nginx gateway) instead of local Python. The app itself is unchanged; unrouted scripts still run locally.
 
 ---
 

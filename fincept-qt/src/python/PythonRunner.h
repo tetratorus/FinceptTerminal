@@ -4,6 +4,7 @@
 #include <QProcess>
 #include <QProcessEnvironment>
 #include <QQueue>
+#include <QSet>
 #include <QString>
 #include <QStringList>
 
@@ -11,6 +12,8 @@
 #include <functional>
 #include <memory>
 #include <optional>
+
+class QNetworkAccessManager;
 
 namespace fincept::python {
 
@@ -130,8 +133,14 @@ class PythonRunner : public QObject {
     /// sets the shared base env.
     QProcessEnvironment build_python_env() const;
 
-    /// Check if python is available
+    /// Check if python is available (locally, or through the Fincept services gateway)
     bool is_available() const;
+
+    /// Microservices mode: FINCEPT_SERVICES_URL points at the services gateway
+    /// (microservices/ in the repo). Scripts the gateway routes run in their
+    /// service container; scripts it marks unrouted fall back to local Python.
+    bool remote_enabled() const { return !remote_url_.isEmpty(); }
+    QString remote_url() const { return remote_url_; }
 
     /// Set max concurrent Python processes (default: 3)
     void set_max_concurrent(int n) { max_concurrent_ = n; }
@@ -153,6 +162,15 @@ class PythonRunner : public QObject {
     void refresh_interpreter();
     QString find_scripts_dir() const;
     void start_next();
+    void run_local(const QString& script, const QStringList& args, const RunOptions& opts, Callback cb,
+                   StreamCallback on_line);
+    void run_remote(const QString& script, const QStringList& args, const RunOptions& opts, Callback cb,
+                    StreamCallback on_line);
+    void run_code_local(const QString& code, Callback cb);
+
+    QString remote_url_;
+    QNetworkAccessManager* net_ = nullptr;
+    QSet<QString> unrouted_scripts_; // gateway said "runs in the desktop app"
 
     QString python_path_;
     QString scripts_dir_;
