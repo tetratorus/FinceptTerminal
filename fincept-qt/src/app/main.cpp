@@ -35,8 +35,10 @@
 #include "mcp/core/CoreToolsSelfTest.h"
 #include "mcp/server/McpServerSelfTest.h"
 #include "network/http/HttpClient.h"
+#include "python/PythonRunner.h"
 #include "python/PythonSetupManager.h"
 #include "python/PythonWorker.h"
+#include "python/ServicesSelfTest.h"
 #include "screens/launchpad/LaunchpadScreen.h"
 #include "screens/recovery/CrashRecoveryDialog.h"
 #include "screens/setup/SetupScreen.h"
@@ -1136,6 +1138,7 @@ int main(int argc, char* argv[]) {
         {"--selftest-portfolio-monitor", &fincept::trading::run_portfolio_monitor_selftest},
         {"--selftest-portfolio-replication", &fincept::trading::replication::run_portfolio_replication_selftest},
         {"--selftest-arena", &fincept::arena::run_arena_selftest},
+        {"--selftest-services", &fincept::python::run_services_selftest},
     };
 
     for (int i = 1; i < argc; ++i) {
@@ -1209,6 +1212,15 @@ int main(int argc, char* argv[]) {
     if (smoke_mode) {
         LOG_INFO("Smoke", "Smoke-test mode — forcing normal boot, skipping setup/recovery");
         setup_status.needs_setup = false;
+    }
+    // Services mode: data and analytics scripts run behind FINCEPT_SERVICES_URL,
+    // so a missing local Python must not block start-up. Scripts that stay in
+    // the desktop app (agents, local-only connectors) report it when used.
+    if (fincept::python::PythonRunner::instance().remote_enabled()) {
+        LOG_INFO("App", "Services mode (" + fincept::python::PythonRunner::instance().remote_url() +
+                            ") — skipping the local Python setup screen");
+        setup_status.needs_setup = false;
+        setup_status.needs_package_sync = false;
     }
 
     if (setup_status.needs_setup) {

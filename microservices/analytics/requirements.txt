@@ -1,0 +1,14 @@
+# Pins follow fincept-qt/resources/requirements-numpy2.txt
+numpy>=2.2.3,<2.3
+pandas>=2.3.3,<3.0
+scipy>=1.13.0,<1.17.0
+statsmodels==0.14.5
+scikit-learn>=1.4.2,<1.7.0
+yfinance==0.2.66
+curl_cffi==0.13.0
+requests==2.32.5
+py_vollib==1.0.1
+fortitudo.tech==1.2
+quantstats>=0.0.62
+plotly>=6.0.0
+matplotlib>=3.9.3,<4.0

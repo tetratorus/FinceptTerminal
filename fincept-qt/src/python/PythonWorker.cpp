@@ -9,6 +9,10 @@
 #include <QDateTime>
 #include <QFileInfo>
 #include <QJsonDocument>
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
+#include <QNetworkRequest>
+#include <QUrl>
 
 namespace fincept::python {
 
@@ -83,6 +87,11 @@ void PythonWorker::submit(const QString& action, const QJsonObject& payload, Cal
         return;
     }
 
+    if (PythonRunner::instance().remote_enabled()) {
+        submit_remote(action, payload, std::move(cb));
+        return;
+    }
+
     ensure_started();
 
     const int id = next_id_++;
@@ -131,7 +140,39 @@ void PythonWorker::stop() {
     fail_all_pending(QStringLiteral("worker shutting down"));
 }
 
+// Services mode: the market-data service runs the same daemon behind
+// POST /v1/yfinance/<action>, so no local daemon is started.
+void PythonWorker::submit_remote(const QString& action, const QJsonObject& payload, Callback cb) {
+    if (!net_)
+        net_ = new QNetworkAccessManager(this);
+    QNetworkRequest req(QUrl(PythonRunner::instance().remote_url() + QStringLiteral("/v1/yfinance/") + action));
+    req.setHeader(QNetworkRequest::ContentTypeHeader, QStringLiteral("application/json"));
+    req.setTransferTimeout(kRequestTimeoutMs);
+    QNetworkReply* reply = net_->post(req, QJsonDocument(payload).toJson(QJsonDocument::Compact));
+    connect(reply, &QNetworkReply::finished, this, [reply, action, cb = std::move(cb)]() {
+        reply->deleteLater();
+        const QJsonObject obj = QJsonDocument::fromJson(reply->readAll()).object();
+        if (obj.isEmpty()) {
+            const QString err = QStringLiteral("market-data service unreachable: ") + reply->errorString();
+            LOG_WARN("PythonWorker", QString("Remote %1 failed: %2").arg(action, err));
+            if (cb)
+                cb(false, {}, err);
+            return;
+        }
+        QJsonObject result_obj;
+        const QJsonValue rv = obj.value("result");
+        if (rv.isObject())
+            result_obj = rv.toObject();
+        else
+            result_obj["_value"] = rv;
+        if (cb)
+            cb(obj.value("ok").toBool(), result_obj, obj.value("error").toString());
+    });
+}
+
 void PythonWorker::ensure_started() {
+    if (PythonRunner::instance().remote_enabled())
+        return;
     if (proc_ && proc_->state() != QProcess::NotRunning)
         return;
     launch_process();

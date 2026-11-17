@@ -1,0 +1,37 @@
+# Fincept Terminal back-end as microservices. Desktop app: FINCEPT_SERVICES_URL=http://localhost:8080
+name: fincept
+x-service: &service
+  restart: unless-stopped
+  build: &build
+    context: ..
+    dockerfile: microservices/Dockerfile
+services:
+  market-data:
+    <<: *service
+    build: { <<: *build, args: { SERVICE: market-data } }
+    image: fincept/market-data:dev
+    environment: { FINCEPT_YF_WORKERS: "3", FINCEPT_MAX_CONCURRENT: "8" }
+    volumes: [market-data-data:/data]
+  analytics:
+    <<: *service
+    build: { <<: *build, args: { SERVICE: analytics } }
+    image: fincept/analytics:dev
+    environment: { FINCEPT_MAX_CONCURRENT: "4" }
+    volumes: [analytics-data:/data]
+  connectors:
+    <<: *service
+    build: { <<: *build, args: { SERVICE: connectors } }
+    image: fincept/connectors:dev
+    environment: { FINCEPT_MAX_CONCURRENT: "8" }
+    volumes: [connectors-data:/data]
+  gateway:
+    image: mirror.gcr.io/library/nginx:1.27-alpine
+    restart: unless-stopped
+    ports: ["${FINCEPT_GATEWAY_PORT:-8080}:80"]
+    volumes:
+      - ./gateway/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./routes.json:/etc/nginx/routes.json:ro
+volumes:
+  market-data-data:
+  analytics-data:
+  connectors-data:

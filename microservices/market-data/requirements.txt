@@ -1,0 +1,12 @@
+# Pins follow fincept-qt/resources/requirements-numpy2.txt
+numpy>=2.2.3,<2.3
+pandas>=2.3.3,<3.0
+yfinance==0.2.66
+curl_cffi==0.13.0
+protobuf>=3.20.2,<6.0.0
+websockets==15.0.1
+requests==2.32.5
+certifi==2025.11.12
+beautifulsoup4==4.14.2
+gnews==0.4.2
+feedparser==6.0.12

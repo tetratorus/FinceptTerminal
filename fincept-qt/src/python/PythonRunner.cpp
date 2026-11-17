@@ -16,11 +16,15 @@
 #include <QJsonObject>
 #include <QLatin1String>
 #include <QMetaObject>
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
+#include <QNetworkRequest>
 #include <QProcessEnvironment>
 #include <QStandardPaths>
 #include <QStringList>
 #include <QThread>
 #include <QTimer>
+#include <QUrl>
 #include <QUuid>
 
 #include <atomic>
@@ -381,6 +385,13 @@ PythonRunner::PythonRunner() {
     scripts_dir_ = find_scripts_dir();
     LOG_INFO("Python", "Scripts: " + scripts_dir_);
 
+    remote_url_ = qEnvironmentVariable("FINCEPT_SERVICES_URL").trimmed();
+    while (remote_url_.endsWith('/'))
+        remote_url_.chop(1);
+    if (!remote_url_.isEmpty())
+        LOG_INFO("Python",
+                 "Services gateway: " + remote_url_ + " (routed scripts run in services, the rest in local Python)");
+
     // Try fast, non-blocking venv detection first
     python_path_ = find_python_sync();
 
@@ -417,7 +428,7 @@ void PythonRunner::refresh_interpreter() {
 }
 
 bool PythonRunner::is_available() const {
-    return !python_path_.isEmpty();
+    return remote_enabled() || !python_path_.isEmpty();
 }
 
 QString PythonRunner::python_path() const {
@@ -628,6 +639,52 @@ QString PythonRunner::find_scripts_dir() const {
     return exe_dir + "/scripts";
 }
 
+// Turns a finished script's stdout/stderr/exit code into a PythonResult. Shared
+// by the local subprocess path and the services (remote) path so both judge
+// success identically.
+//
+// Success used to be `exit_code == 0 && !json_out.isEmpty()`, which laundered
+// two distinct failures into empty success:
+//   * a script printing {"error": "rate limited"} and exiting 0
+//   * extract_json's fallback returning an UNBALANCED fragment (first bracket →
+//     EOF) that never parses
+// Callers then saw success-with-no-rows and rendered a blank screen instead of
+// falling back to cached data.
+static void finalize_script_output(PythonResult& result, const QString& stdout_str, QString stderr_str, int exit_code,
+                                   bool expect_json) {
+    QString json_out = extract_json(stdout_str);
+    // expect_json=false means "this output is not (only) JSON": hand it over
+    // whole. Extracting here replaced text such as `… [done]` or a markdown
+    // `[link](url)` with its last bracketed fragment. Every such caller (MCP
+    // python tool, notebook runner, SEC workflow node) parses the text itself.
+    result.output = (!expect_json || json_out.isEmpty()) ? stdout_str : json_out;
+    result.error = std::move(stderr_str);
+    result.exit_code = exit_code;
+    result.success = (exit_code == 0);
+    if (!expect_json)
+        return;
+
+    QJsonParseError pe{};
+    const QJsonDocument doc = QJsonDocument::fromJson(json_out.toUtf8(), &pe);
+    const bool parsed = !json_out.isEmpty() && pe.error == QJsonParseError::NoError;
+    if (result.success && !parsed) {
+        result.success = false;
+        if (result.error.isEmpty()) {
+            result.error = json_out.isEmpty()
+                               ? QStringLiteral("script produced no JSON payload")
+                               : QStringLiteral("script produced malformed JSON: %1").arg(pe.errorString());
+        }
+    }
+    // A script-level {"error": ...} envelope is a failure even on exit 0 — and
+    // on a NON-zero exit it is the only useful diagnostic, because result.error
+    // is stderr and these scripts write their message to stdout. ~412 sites do this.
+    QString envelope;
+    if (parsed && extract_error_envelope(doc, &envelope)) {
+        result.success = false;
+        result.error = envelope;
+    }
+}
+
 // ── Run Script ───────────────────────────────────────────────────────────────
 
 void PythonRunner::run(const QString& script, const QStringList& args, Callback cb, StreamCallback on_line,
@@ -662,6 +719,15 @@ void PythonRunner::run_with_options(const QString& script, const QStringList& ar
         return;
     }
 
+    if (remote_enabled() && !unrouted_scripts_.contains(script)) {
+        run_remote(script, args, opts, std::move(cb), std::move(on_line));
+        return;
+    }
+    run_local(script, args, opts, std::move(cb), std::move(on_line));
+}
+
+void PythonRunner::run_local(const QString& script, const QStringList& args, const RunOptions& opts, Callback cb,
+                             StreamCallback on_line) {
     if (python_init_done_ && python_path_.isEmpty()) {
         cb({false,
             {},
@@ -712,6 +778,14 @@ void PythonRunner::run_code(const QString& code, Callback cb) {
         return;
     }
 
+    if (remote_enabled() && !unrouted_scripts_.contains(QStringLiteral("__code__"))) {
+        run_remote(QStringLiteral("__code__"), {code}, RunOptions{}, std::move(cb), {});
+        return;
+    }
+    run_code_local(code, std::move(cb));
+}
+
+void PythonRunner::run_code_local(const QString& code, Callback cb) {
     if (python_init_done_ && python_path_.isEmpty()) {
         cb({false,
             {},
@@ -746,6 +820,161 @@ void PythonRunner::run_code(const QString& code, Callback cb) {
     queue_.enqueue(
         {"__code__:" + temp_path, {}, std::move(cb), {}, {}, false, true, kLongRunTimeoutMs, nullptr, std::nullopt, 0});
     start_next();
+}
+
+// ── Services mode ────────────────────────────────────────────────────────────
+// With FINCEPT_SERVICES_URL set, scripts run in the service containers behind
+// the gateway (microservices/ in the repo). The gateway answers 404 with
+// X-Fincept-Unrouted for scripts that stay in the desktop app; those are
+// remembered and run in local Python from then on.
+
+// SecureStorage credentials only leave the machine over TLS or to a gateway on
+// this machine; anything else would send API keys in clear text.
+static bool pyrunner_gateway_trusted(const QUrl& url) {
+    const QString host = url.host().toLower();
+    return url.scheme() == QLatin1String("https") || host == QLatin1String("localhost") ||
+           host == QLatin1String("127.0.0.1") || host == QLatin1String("::1");
+}
+
+static QJsonObject pyrunner_remote_credentials(const std::optional<QStringList>& allowlist) {
+    QJsonObject env;
+    for (const QString& key : kManagedCredentialKeys) {
+        if (allowlist.has_value() && !allowlist->contains(key))
+            continue;
+        auto r = SecureStorage::instance().retrieve(key);
+        if (r.is_ok() && !r.value().isEmpty())
+            env.insert(key, r.value());
+    }
+    return env;
+}
+
+void PythonRunner::run_remote(const QString& script, const QStringList& args, const RunOptions& opts, Callback cb,
+                              StreamCallback on_line) {
+    if (!net_)
+        net_ = new QNetworkAccessManager(this);
+
+    const bool is_code = script == QLatin1String("__code__");
+    const int timeout_ms = is_code                                   ? kLongRunTimeoutMs
+                           : (opts.timeout_ms == kTimeoutFromScript) ? default_timeout_for_script(script)
+                                                                     : opts.timeout_ms;
+    const QUrl url(remote_url_ + (is_code ? QStringLiteral("/v1/code") : QStringLiteral("/v1/scripts/") + script));
+
+    QJsonObject body;
+    if (is_code) {
+        body["code"] = args.value(0);
+    } else {
+        body["args"] = QJsonArray::fromStringList(args);
+        if (!opts.stdin_data.isEmpty())
+            body["stdin"] = QString::fromUtf8(opts.stdin_data);
+        body["spill"] = script_supports_arg_spill(script, args);
+    }
+    body["timeout_ms"] = timeout_ms;
+    if (pyrunner_gateway_trusted(url)) {
+        const QJsonObject creds = pyrunner_remote_credentials(opts.credential_allowlist);
+        if (!creds.isEmpty())
+            body["env"] = creds;
+    }
+
+    QNetworkRequest req(url);
+    req.setHeader(QNetworkRequest::ContentTypeHeader, QStringLiteral("application/json"));
+    // The service enforces timeout_ms itself; this only catches a dead link.
+    req.setTransferTimeout(timeout_ms > 0 ? timeout_ms + 30000 : 0);
+    const qint64 started = QDateTime::currentMSecsSinceEpoch();
+    QNetworkReply* reply = net_->post(req, QJsonDocument(body).toJson(QJsonDocument::Compact));
+
+    if (opts.cancel_token) {
+        auto* poll = new QTimer(reply);
+        poll->setInterval(200);
+        connect(poll, &QTimer::timeout, reply, [reply, token = opts.cancel_token]() {
+            if (token->load()) {
+                reply->setProperty(kPyRunnerCancelledProp, true);
+                reply->abort();
+            }
+        });
+        poll->start();
+    }
+
+    connect(reply, &QNetworkReply::finished, this,
+            [this, reply, script, args, opts, is_code, started, cb = std::move(cb),
+             on_line = std::move(on_line)]() mutable {
+                reply->deleteLater();
+                const int status = reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt();
+                const QByteArray raw = reply->readAll();
+
+                if (reply->property(kPyRunnerCancelledProp).toBool()) {
+                    cb({false, {}, QStringLiteral("Cancelled"), -1});
+                    return;
+                }
+                if (status == 404 && reply->hasRawHeader("X-Fincept-Unrouted")) {
+                    unrouted_scripts_.insert(script);
+                    LOG_INFO("Python", QString("%1 is not served by the gateway; running it locally")
+                                           .arg(is_code ? QStringLiteral("Code cells") : script));
+                    if (is_code)
+                        run_code_local(args.value(0), std::move(cb));
+                    else
+                        run_local(script, args, opts, std::move(cb), std::move(on_line));
+                    return;
+                }
+
+                const QJsonObject obj = QJsonDocument::fromJson(raw).object();
+                const QString service = obj.value("service").toString(QStringLiteral("gateway"));
+                if (status != 200) {
+                    QString err =
+                        status == 0
+                            ? QString("Fincept services unreachable at %1: %2").arg(remote_url_, reply->errorString())
+                            : QString("%1 service failed (HTTP %2): %3")
+                                  .arg(service)
+                                  .arg(status)
+                                  .arg(obj.value("error").toString(reply->errorString()));
+                    LOG_ERROR("Python", QString("Remote %1: %2").arg(script, err));
+                    cb({false, {}, err, -1});
+                    return;
+                }
+
+                const QString out = obj.value("stdout").toString();
+                const QString err = obj.value("stderr").toString();
+                const int exit_code = obj.value("exit_code").toInt(-1);
+                if (on_line) {
+                    for (const QString& line : out.split('\n', Qt::SkipEmptyParts))
+                        on_line(line, false);
+                    for (const QString& line : err.split('\n', Qt::SkipEmptyParts))
+                        on_line(line, true);
+                }
+
+                PythonResult result;
+                if (is_code) {
+                    result.success = exit_code == 0;
+                    result.output = out;
+                    result.error = err;
+                    result.exit_code = exit_code;
+                } else {
+                    finalize_script_output(result, out, err, exit_code, opts.expect_json);
+                }
+                if (obj.value("timed_out").toBool()) {
+                    result.success = false;
+                    if (result.error.isEmpty())
+                        result.error = QString("Script timed out in the %1 service").arg(service);
+                }
+                if (opts.max_output_bytes > 0 && out.toUtf8().size() > opts.max_output_bytes) {
+                    result.success = false;
+                    result.output.clear();
+                    result.error = pyrunner_output_capped_message();
+                }
+                if (!result.success &&
+                    (pyrunner_is_import_error(result.error) || pyrunner_is_import_error(result.output)))
+                    pyrunner_explain_import_error(result, script);
+
+                const qint64 ms = QDateTime::currentMSecsSinceEpoch() - started;
+                if (!result.success && !is_code)
+                    LOG_ERROR("Python", QString("Remote %1 (%2) failed in %3ms (exit=%4): %5")
+                                            .arg(script, service)
+                                            .arg(ms)
+                                            .arg(exit_code)
+                                            .arg(result.error.left(200)));
+                else
+                    LOG_DEBUG("Python", QString("Remote %1 (%2) finished in %3ms").arg(script, service).arg(ms));
+                cb(std::move(result));
+            });
 }
 
 void PythonRunner::start_next() {
@@ -1053,50 +1282,7 @@ void PythonRunner::start_next() {
                         result.output = std::move(stdout_str);
                         result.error = std::move(stderr_str);
                     } else {
-                        // For scripts: extract JSON from output.
-                        //
-                        // Success used to be `exit_code == 0 && !json_out.isEmpty()`,
-                        // which laundered two distinct failures into empty success:
-                        //   * a script printing {"error": "rate limited"} and exiting 0
-                        //   * extract_json's fallback returning an UNBALANCED fragment
-                        //     (first bracket → EOF) that never parses
-                        // Callers then saw success-with-no-rows and rendered a blank
-                        // screen instead of falling back to cached data.
-                        QString json_out = extract_json(stdout_str);
-                        // expect_json=false means "this output is not (only) JSON":
-                        // hand it over whole. Extracting here replaced text such as
-                        // `… [done]` or a markdown `[link](url)` with its last
-                        // bracketed fragment. Every such caller (MCP python tool,
-                        // notebook runner, SEC workflow node) parses the text itself.
-                        result.output = (!expect_json || json_out.isEmpty()) ? stdout_str : json_out;
-                        result.error = std::move(stderr_str);
-                        result.success = (exit_code == 0);
-
-                        if (expect_json) {
-                            QJsonParseError pe{};
-                            const QJsonDocument doc = QJsonDocument::fromJson(json_out.toUtf8(), &pe);
-                            const bool parsed = !json_out.isEmpty() && pe.error == QJsonParseError::NoError;
-
-                            if (result.success && !parsed) {
-                                result.success = false;
-                                if (result.error.isEmpty()) {
-                                    result.error = json_out.isEmpty()
-                                                       ? QStringLiteral("script produced no JSON payload")
-                                                       : QStringLiteral("script produced malformed JSON: %1")
-                                                             .arg(pe.errorString());
-                                }
-                            }
-
-                            // A script-level {"error": ...} envelope is a failure even
-                            // on exit 0 — and on a NON-zero exit it is the only useful
-                            // diagnostic, because result.error is stderr and these
-                            // scripts write their message to stdout. ~412 sites do this.
-                            QString envelope;
-                            if (parsed && extract_error_envelope(doc, &envelope)) {
-                                result.success = false;
-                                result.error = envelope;
-                            }
-                        }
+                        finalize_script_output(result, stdout_str, std::move(stderr_str), exit_code, expect_json);
                     }
 
                     if (timed_out->load()) {
