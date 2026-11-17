@@ -18,8 +18,9 @@
 namespace fincept::screens::widgets {
 
 /// Inline video/stream player widget.
-/// Plays HLS/MP4 direct streams via Qt Multimedia.
-/// For YouTube URLs, uses yt-dlp to extract the direct stream URL first.
+/// Plays YouTube streams via Qt Multimedia, using yt-dlp to resolve the
+/// direct stream URL. Arbitrary (non-YouTube) media URLs are rejected so
+/// untrusted content never reaches the bundled FFmpeg decoders.
 class VideoPlayerWidget : public BaseWidget {
     Q_OBJECT
   public:
