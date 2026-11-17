@@ -1,0 +1,15 @@
+# PATCH_COMMAND for QtADS on Android: Android is Q_OS_UNIX/UNIX but has no X11/xcb,
+# so take the non-X11 code paths. Run with -DADS_SRC=<qtads source dir>.
+file(GLOB_RECURSE _ads_files "${ADS_SRC}/src/*.h" "${ADS_SRC}/src/*.cpp")
+foreach(_f IN LISTS _ads_files)
+    file(READ "${_f}" _c)
+    if(_c MATCHES "defined\\(Q_OS_UNIX\\)" AND NOT _c MATCHES "Q_OS_ANDROID")
+        string(REPLACE "defined(Q_OS_UNIX)" "(defined(Q_OS_UNIX) && !defined(Q_OS_ANDROID))" _c "${_c}")
+        file(WRITE "${_f}" "${_c}")
+    endif()
+endforeach()
+file(READ "${ADS_SRC}/src/CMakeLists.txt" _c)
+if(NOT _c MATCHES "NOT ANDROID")
+    string(REPLACE "UNIX AND NOT APPLE" "UNIX AND NOT APPLE AND NOT ANDROID" _c "${_c}")
+    file(WRITE "${ADS_SRC}/src/CMakeLists.txt" "${_c}")
+endif()

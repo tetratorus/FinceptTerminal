@@ -147,7 +147,7 @@ class NewsScreen : public QWidget, public IStatefulScreen, public IGroupLinked {
 
     // Lazy loading
     int visible_article_count_ = 50;
-    static constexpr int PAGE_SIZE = 50;
+    static constexpr int kPageSize = 50;
 
     // Deviation baseline. One sample per category per HOUR (see
     // compute_deviations()), not one per UI refresh.

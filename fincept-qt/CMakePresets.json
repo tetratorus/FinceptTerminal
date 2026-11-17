@@ -60,6 +60,24 @@
         "CMAKE_BUILD_TYPE": "Release",
         "CMAKE_OSX_DEPLOYMENT_TARGET": "13.0"
       }
+    },
+
+    {
+      "name": "android-x86_64",
+      "displayName": "Android x86_64 (emulator)",
+      "description": "Cross-compile for an x86_64 Android emulator. Needs env QT_ANDROID (Qt 6.8.3 android_x86_64 kit), QT_HOST_PATH (matching desktop gcc_64 kit), ANDROID_SDK_ROOT, ANDROID_NDK_ROOT and FINCEPT_ANDROID_OPENSSL_ROOT (KDAB android_openssl no-asm/ssl_3). See docs/ANDROID.md.",
+      "inherits": "base",
+      "condition": { "type": "equals", "lhs": "${hostSystemName}", "rhs": "Linux" },
+      "toolchainFile": "$env{QT_ANDROID}/lib/cmake/Qt6/qt.toolchain.cmake",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "QT_HOST_PATH": "$env{QT_HOST_PATH}",
+        "ANDROID_SDK_ROOT": "$env{ANDROID_SDK_ROOT}",
+        "ANDROID_NDK_ROOT": "$env{ANDROID_NDK_ROOT}",
+        "ANDROID_PLATFORM": "android-28",
+        "QT_ANDROID_ABIS": "x86_64",
+        "QT_ANDROID_BUILD_ALL_ABIS": "OFF"
+      }
     }
   ],
 
@@ -67,6 +85,7 @@
     { "name": "win-dev",       "configurePreset": "win-dev"       },
     { "name": "win-release",   "configurePreset": "win-release"   },
     { "name": "linux-release", "configurePreset": "linux-release" },
-    { "name": "macos-release", "configurePreset": "macos-release" }
+    { "name": "macos-release", "configurePreset": "macos-release" },
+    { "name": "android-x86_64", "configurePreset": "android-x86_64", "targets": ["FinceptTerminal_make_apk"] }
   ]
 }

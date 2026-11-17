@@ -190,7 +190,7 @@ void PolymarketBrowsePanel::on_prev() {
 
 void PolymarketBrowsePanel::on_next() {
     int total = model_->rowCount();
-    int pages = qMax(1, (total + PAGE_SIZE - 1) / PAGE_SIZE);
+    int pages = qMax(1, (total + kPageSize - 1) / kPageSize);
     if (current_page_ + 1 < pages) {
         ++current_page_;
         update_page();
@@ -199,7 +199,7 @@ void PolymarketBrowsePanel::on_next() {
 
 void PolymarketBrowsePanel::update_page() {
     int total = model_->rowCount();
-    int pages = qMax(1, (total + PAGE_SIZE - 1) / PAGE_SIZE);
+    int pages = qMax(1, (total + kPageSize - 1) / kPageSize);
     if (current_page_ >= pages)
         current_page_ = pages - 1;
     page_label_->setText(QString("%1 / %2").arg(current_page_ + 1).arg(pages));
@@ -209,7 +209,7 @@ void PolymarketBrowsePanel::update_page() {
     // never moved, so paging was a no-op control. Scroll the view to the first
     // row of the page so the buttons actually navigate.
     if (list_view_ && total > 0) {
-        const int row = qBound(0, current_page_ * PAGE_SIZE, total - 1);
+        const int row = qBound(0, current_page_ * kPageSize, total - 1);
         const auto idx = model_->index(row, 0);
         if (idx.isValid())
             list_view_->scrollTo(idx, QAbstractItemView::PositionAtTop);

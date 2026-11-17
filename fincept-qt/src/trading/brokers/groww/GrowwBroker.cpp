@@ -413,13 +413,13 @@ ApiResponse<QVector<BrokerOrderInfo>> GrowwBroker::get_orders(const BrokerCreden
     };
 
     auto fetch_segment = [&](const QString& segment, QString* error_out) -> bool {
-        constexpr int PAGE_SIZE = 25; // Groww API max per page
+        constexpr int kPageSize = 25; // Groww API max per page
         int page = 0;
         while (true) {
             QString url = QString("https://api.groww.in/v1/order/list?segment=%1&page=%2&page_size=%3")
                               .arg(segment)
                               .arg(page)
-                              .arg(PAGE_SIZE);
+                              .arg(kPageSize);
             auto resp = BrokerHttp::instance().get(url, hdrs);
             if (!resp.success || is_token_expired(resp)) {
                 if (error_out)
@@ -463,7 +463,7 @@ ApiResponse<QVector<BrokerOrderInfo>> GrowwBroker::get_orders(const BrokerCreden
                     info.timestamp = o["order_time"].toString();
                 orders.append(info);
             }
-            if (list.size() < PAGE_SIZE)
+            if (list.size() < kPageSize)
                 break; // last page
             ++page;
         } // while
@@ -491,13 +491,13 @@ ApiResponse<QJsonObject> GrowwBroker::get_trade_book(const BrokerCredentials& cr
     QJsonArray all_trades;
 
     auto fetch_segment_trades = [&](const QString& segment) {
-        constexpr int PAGE_SIZE = 25;
+        constexpr int kPageSize = 25;
         int page = 0;
         while (true) {
             QString list_url = QString("https://api.groww.in/v1/order/list?segment=%1&page=%2&page_size=%3")
                                    .arg(segment)
                                    .arg(page)
-                                   .arg(PAGE_SIZE);
+                                   .arg(kPageSize);
             auto list_resp = BrokerHttp::instance().get(list_url, hdrs);
             if (!list_resp.success || is_token_expired(list_resp))
                 return;
@@ -528,7 +528,7 @@ ApiResponse<QJsonObject> GrowwBroker::get_trade_book(const BrokerCredentials& cr
                 for (const auto& t : tlist)
                     all_trades.append(t);
             }
-            if (orders.size() < PAGE_SIZE)
+            if (orders.size() < kPageSize)
                 break;
             ++page;
         }

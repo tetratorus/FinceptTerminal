@@ -160,6 +160,37 @@ static void post_chain(std::vector<std::function<void()>> steps, std::size_t i =
 // instead of quitting; the Launchpad's own close handler quits explicitly).
 // Called from both the post-setup-screen path and the no-setup path so the
 // two branches stay in sync.
+#ifdef Q_OS_ANDROID
+#    include <QElapsedTimer>
+#    include <QWidget>
+// Qt 6.8 on Android only flushes the dirty sub-rect of a widget window, which leaves
+// stale pixels around page switches (QStackedWidget, popups) until the next expose.
+// Coalesce any widget repaint into one full-window repaint shortly afterwards.
+class AndroidFullRepaint : public QObject {
+  public:
+    using QObject::QObject;
+    bool eventFilter(QObject* obj, QEvent* ev) override {
+        if (ev->type() == QEvent::Paint && !pending_ && (!quiet_.isValid() || quiet_.elapsed() > 150)) {
+            if (auto* w = qobject_cast<QWidget*>(obj)) {
+                pending_ = true;
+                QPointer<QWidget> top = w->window();
+                QTimer::singleShot(60, this, [this, top]() {
+                    pending_ = false;
+                    quiet_.start();
+                    if (top)
+                        top->update();
+                });
+            }
+        }
+        return QObject::eventFilter(obj, ev);
+    }
+
+  private:
+    bool pending_ = false;
+    QElapsedTimer quiet_;
+};
+#endif
+
 static void wire_app_lifecycle(QApplication& app, fincept::InstanceLock& lock) {
     QObject::connect(&lock, &fincept::InstanceLock::message_received, [](const QStringList& /*args*/) {
         // Re-launching the exe while an instance is already
@@ -331,6 +362,9 @@ int main(int argc, char* argv[]) {
     // "FinceptTerminal --profile work" and "FinceptTerminal --profile personal"
     // run as two independent primaries.
     QApplication app(argc, argv);
+#ifdef Q_OS_ANDROID
+    app.installEventFilter(new AndroidFullRepaint(&app));
+#endif
     app.setApplicationName("FinceptTerminal");
     app.setOrganizationName("Fincept");
 #ifndef FINCEPT_VERSION_STRING
@@ -1210,6 +1244,13 @@ int main(int argc, char* argv[]) {
         LOG_INFO("Smoke", "Smoke-test mode — forcing normal boot, skipping setup/recovery");
         setup_status.needs_setup = false;
     }
+#ifdef Q_OS_ANDROID
+    // No embedded Python runtime on Android (uv/python cannot be provisioned
+    // inside the app sandbox): boot straight into the terminal, Python-backed
+    // features stay unavailable.
+    setup_status.needs_setup = false;
+    setup_status.needs_package_sync = false;
+#endif
 
     if (setup_status.needs_setup) {
         LOG_INFO("App", "Python environment not ready — showing setup screen");
