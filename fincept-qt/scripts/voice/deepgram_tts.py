@@ -24,6 +24,7 @@ import json
 import os
 import sys
 import urllib.parse
+import urllib.request
 from typing import Optional
 
 
@@ -156,7 +157,6 @@ def main() -> int:
                 resp.raw.decode_content = True
                 play_stream(resp.iter_content(chunk_size=PLAYBACK_CHUNK), sd)
         else:
-            import urllib.request
             req = urllib.request.Request(url, data=payload, headers=headers, method="POST")
             diag("POST /v1/speak (urllib)")
             with urllib.request.urlopen(req, timeout=30) as resp:
