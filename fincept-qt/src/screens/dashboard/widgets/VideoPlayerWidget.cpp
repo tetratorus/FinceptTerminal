@@ -44,7 +44,7 @@ static bool host_matches(const QString& host, const QString& domain) {
 // (e.g. CVE-2026-125222 in the Hap decoder) to attacker-supplied content.
 // Returns the re-serialised URL (so yt-dlp sees exactly what was validated),
 // or an empty string if it is not a YouTube video/live page.
-static QString normalized_youtube_url(const QString& url) {
+[[maybe_unused]] static QString normalized_youtube_url(const QString& url) {
     const QUrl u(url, QUrl::StrictMode);
     if (!u.isValid() || (u.scheme() != "https" && u.scheme() != "http") || !u.userInfo().isEmpty() ||
         u.port() != -1)
