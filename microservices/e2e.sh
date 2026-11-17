@@ -19,7 +19,9 @@ wait_healthy() {
   done
 }
 
-echo "== stack"; "${compose[@]}" up -d --build; wait_healthy
+echo "== stack"; "${compose[@]}" up -d --build
+"${compose[@]}" exec -T gateway nginx -s reload >/dev/null 2>&1 || true  # pick up a regenerated nginx.conf
+wait_healthy
 echo "== contract tests"
 python3 -m pytest -q "$here/tests"
 echo "== desktop client against the stack"

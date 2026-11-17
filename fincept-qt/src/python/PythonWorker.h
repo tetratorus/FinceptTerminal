@@ -12,6 +12,8 @@
 
 #include <functional>
 
+class QNetworkAccessManager;
+
 namespace fincept::python {
 
 /// Persistent yfinance worker — long-lived Python process running
@@ -59,6 +61,9 @@ class PythonWorker : public QObject {
     void stop();
 
   private:
+    void submit_remote(const QString& action, const QJsonObject& payload, Callback cb);
+    QNetworkAccessManager* net_ = nullptr;
+
     PythonWorker();
     ~PythonWorker() override;
 

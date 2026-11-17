@@ -2,6 +2,7 @@
 
 #include "core/events/EventBus.h"
 #include "datahub/DataHub.h"
+#include "python/PythonRunner.h"
 #include "python/PythonSetupManager.h"
 #include "services/connectivity/ConnectivityService.h"
 #include "trading/AccountManager.h"
@@ -220,7 +221,13 @@ void ConnectionHealthWidget::append_python_row(QVector<Row>& rows) const {
     Row r;
     r.source = tr("PYTHON");
     r.screen_id = QStringLiteral("settings");
-    if (psm.is_running()) {
+    auto& runner = fincept::python::PythonRunner::instance();
+    if (runner.remote_enabled()) {
+        r.state = tr("SERVICES");
+        r.tone = Tone::Pos;
+        r.detail = runner.remote_url();
+        r.tooltip = tr("Market data and analytics run in the Fincept services at %1.").arg(runner.remote_url());
+    } else if (psm.is_running()) {
         const bool full = psm.running_scope() == fincept::python::SetupScope::Full;
         r.state = tr("INSTALLING");
         r.tone = Tone::Warn;

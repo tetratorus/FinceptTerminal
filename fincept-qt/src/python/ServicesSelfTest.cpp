@@ -1,6 +1,7 @@
 #include "python/ServicesSelfTest.h"
 
 #include "python/PythonRunner.h"
+#include "python/PythonWorker.h"
 
 #include <QElapsedTimer>
 #include <QEventLoop>
@@ -79,6 +80,29 @@ int run_services_selftest() {
         const auto doc = QJsonDocument::fromJson(r.output.toUtf8());
         return doc.isArray() ? doc.array().size() > 10 : doc.object().size() > 0;
     });
+
+    // Dashboard / Markets refreshes go through PythonWorker, not PythonRunner.
+    {
+        bool ok = false;
+        QJsonObject res;
+        QString werr = QStringLiteral("no callback");
+        QEventLoop loop;
+        QTimer::singleShot(120000, &loop, &QEventLoop::quit);
+        PythonWorker::instance().submit(
+            QStringLiteral("batch_quotes"), QJsonObject{{"symbols", QJsonArray{"AAPL", "MSFT", "^GSPC"}}},
+            [&](bool o, QJsonObject r, QString e) {
+                ok = o;
+                res = std::move(r);
+                werr = std::move(e);
+                loop.quit();
+            });
+        loop.exec();
+        PythonResult wr;
+        wr.success = ok;
+        wr.error = werr;
+        expect_up(QStringLiteral("market-data"), QStringLiteral("PythonWorker batch_quotes (dashboard path)"), wr,
+                  [&](const PythonResult&) { return res.value("_value").toArray().size() == 3; });
+    }
 
     auto rsi = run_script(QStringLiteral("Analytics/technical_analysis/momentum_indicators.py"),
                           {QStringLiteral("AAPL"), QStringLiteral("rsi"), QStringLiteral("{\"timeframe\":\"3mo\"}")});

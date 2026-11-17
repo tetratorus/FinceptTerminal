@@ -111,3 +111,16 @@ def test_one_service_down_others_keep_working(gw):
         import time
         time.sleep(1)
     assert requests.post(gw + "/v1/code", json={"code": "print(1)"}).json()["stdout"].strip() == "1"
+
+
+def test_worker_protocol_endpoint(gw):
+    """PythonWorker (dashboard/markets batch calls) speaks the daemon action protocol."""
+    r = requests.post(gw + "/v1/yfinance/batch_quotes", json={"symbols": ["AAPL", "MSFT"]}, timeout=120)
+    body = r.json()
+    assert r.status_code == 200 and body["service"] == "market-data" and body["ok"], body
+    assert len(body["result"]) == 2
+
+
+def test_notebook_runner_goes_to_analytics(gw):
+    r = run(gw, "notebook_cell_runner.py")
+    assert r.json()["service"] == "analytics"

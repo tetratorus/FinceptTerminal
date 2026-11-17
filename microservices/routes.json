@@ -24,7 +24,8 @@
       "name": "analytics",
       "description": "Quant, corporate finance, M&A, portfolio and technical analytics; notebook code cells",
       "scripts": [
-        "Analytics/[A-Za-z0-9_/]+\\.py"
+        "Analytics/[A-Za-z0-9_/]+\\.py",
+        "notebook_cell_runner\\.py"
       ],
       "code": true
     },

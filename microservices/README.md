@@ -38,6 +38,7 @@ script path relative to `fincept-qt/scripts`, first matching service wins,
 |---|---|---|---|
 | `POST` | `/v1/scripts/<path>` | `{"args": [...], "stdin": "", "env": {}, "timeout_ms": N, "spill": bool}` | `{"service", "exit_code", "stdout", "stderr", "timed_out", "duration_ms"}` |
 | `POST` | `/v1/code` | `{"code": "...", "timeout_ms": N}` | same (analytics only) |
+| `POST` | `/v1/yfinance/<action>` | daemon payload, e.g. `{"symbols": ["AAPL"]}` | `{ok, result \| error}` (market-data; used by the desktop's `PythonWorker` for dashboard and Markets refreshes) |
 | `GET` | `/services/<name>/healthz` | | service status, owned patterns, counters |
 
 A stopped or crashed service returns `503 {"error": "service unavailable", "service": "<name>"}` from the gateway; the other services keep answering.

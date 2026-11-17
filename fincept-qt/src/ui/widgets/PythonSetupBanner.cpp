@@ -2,6 +2,7 @@
 #include "ui/widgets/PythonSetupBanner.h"
 
 #include "core/logging/Logger.h"
+#include "python/PythonRunner.h"
 #include "python/PythonSetupManager.h"
 #include "ui/theme/Theme.h"
 #include "ui/theme/ThemeManager.h"
@@ -104,7 +105,7 @@ void PythonSetupBanner::set_mode(Mode mode) {
 
 void PythonSetupBanner::refresh() {
     auto& mgr = python::PythonSetupManager::instance();
-    if (mgr.is_core_ready()) {
+    if (mgr.is_core_ready() || python::PythonRunner::instance().remote_enabled()) {
         set_mode(Mode::Hidden);
         return;
     }

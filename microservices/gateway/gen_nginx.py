@@ -8,7 +8,7 @@ import sys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, os.path.join(HERE, "..", "runner"))
-from routes import load_routes  # noqa: E402
+from routes import load_routes, owner_of  # noqa: E402
 
 PORT = 8000
 
@@ -57,6 +57,12 @@ def render(routes):
         w(f"            set $fincept_up {upstream};")
         w("            proxy_pass $fincept_up;")
         w("        }")
+        if owner_of("yfinance_data.py", routes) == name:
+            w("        location ~ ^/v1/yfinance/[a-z_]+$ {")
+            w(f"            set $fincept_svc {name};")
+            w(f"            set $fincept_up {upstream};")
+            w("            proxy_pass $fincept_up;")
+            w("        }")
         if svc.get("code"):
             w("        location = /v1/code {")
             w(f"            set $fincept_svc {name};")

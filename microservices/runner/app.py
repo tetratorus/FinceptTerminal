@@ -182,6 +182,23 @@ async def run_script(script: str, request: Request):
     return reply(res)
 
 
+@app.post("/v1/yfinance/{action}")
+async def yfinance_action(action: str, request: Request):
+    """Same action/payload protocol as `yfinance_data.py --daemon` (the desktop's PythonWorker)."""
+    stats["requests"] += 1
+    if not yf_pool:
+        return reply({"ok": False, "error": f"{SERVICE} has no yfinance worker pool"}, 404)
+    payload = await request.json()
+    start = time.monotonic()
+    ok, result = await yf_pool.call(action, payload if isinstance(payload, dict) else {}, 120)
+    stats["pool_hits"] += 1
+    if not ok:
+        stats["failures"] += 1
+    body = {"ok": ok, "duration_ms": int((time.monotonic() - start) * 1000)}
+    body["result" if ok else "error"] = result if ok else str(result)
+    return reply(body)
+
+
 @app.post("/v1/code")
 async def run_code(request: Request):
     stats["requests"] += 1
