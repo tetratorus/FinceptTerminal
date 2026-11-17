@@ -9,6 +9,7 @@
 #    include <QtCore/QIODevice>
 #    include <QtCore/QStringList>
 #    include <QtCore/QTimer>
+
 #    include <functional>
 
 class QProcess : public QIODevice {
@@ -116,8 +117,7 @@ class QProcess : public QIODevice {
     bool isSequential() const override { return true; }
 
     static int execute(const QString&, const QStringList& = {}) { return -2; }
-    static bool startDetached(const QString&, const QStringList& = {}, const QString& = QString(),
-                              qint64* = nullptr) {
+    static bool startDetached(const QString&, const QStringList& = {}, const QString& = QString(), qint64* = nullptr) {
         return false;
     }
     static QStringList systemEnvironment() { return QProcessEnvironment::systemEnvironment().toStringList(); }

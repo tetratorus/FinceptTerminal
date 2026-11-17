@@ -98,7 +98,6 @@
 #include "ui/workspace/LayoutOpenDialog.h"
 #include "ui/workspace/LayoutSaveAsDialog.h"
 
-#include <QLayout>
 #include <QApplication>
 #include <QCloseEvent>
 #include <QDateTime>
@@ -110,6 +109,7 @@
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QJsonValue>
+#include <QLayout>
 #include <QMessageBox>
 #include <QPalette>
 #include <QPointer>

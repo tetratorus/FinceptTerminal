@@ -1340,7 +1340,7 @@ int main(int argc, char* argv[]) {
         auto* primary = new fincept::WindowFrame(primary_id);
         primary->setAttribute(Qt::WA_DeleteOnClose);
 #ifdef Q_OS_IOS
-        primary->showMaximized();  // fill the screen's safe area
+        primary->showMaximized(); // fill the screen's safe area
 #else
         primary->show();
 #endif

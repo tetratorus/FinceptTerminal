@@ -3,8 +3,8 @@
 #include "ui/theme/Theme.h"
 #include "ui/theme/ThemeManager.h"
 
-#include <QScroller>
 #include <QEvent>
+#include <QScroller>
 #include <QStyle>
 #include <QVariant>
 
