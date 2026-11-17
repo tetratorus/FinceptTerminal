@@ -538,6 +538,183 @@ class StatisticalAnalyzer(EconomicsBase):
         x = np.arange(len(data))
         y = data.values
 
+        slope, intercept, r_value, p_value, std_err = stats.linregress(x, y)
+
+        # Calculate trend strength
+        trend_strength = abs(r_value)
+
+        return {
+            'linear_trend': {
+                'slope': self.to_decimal(slope),
+                'intercept': self.to_decimal(intercept),
+                'r_squared': self.to_decimal(r_value ** 2),
+                'p_value': self.to_decimal(p_value),
+                'standard_error': self.to_decimal(std_err)
+            },
+            'trend_direction': 'Increasing' if slope > 0 else 'Decreasing' if slope < 0 else 'Flat',
+            'trend_strength': self.to_decimal(trend_strength),
+            'trend_significance': p_value < 0.05
+        }
+
+    def _analyze_seasonality(self, data: pd.Series) -> Dict[str, Any]:
+        """Analyze seasonality in time series"""
+
+        if len(data) < 24:  # Need at least 2 years of monthly data
+            return {'error': 'Insufficient data for seasonality analysis'}
+
+        try:
+            from statsmodels.tsa.seasonal import seasonal_decompose
+
+            # Infer frequency for decomposition
+            freq = pd.infer_freq(data.index)
+            if freq is None:
+                # Try to infer period based on data length
+                if len(data) >= 365:
+                    period = 365  # Daily data, yearly seasonality
+                elif len(data) >= 52:
+                    period = 52  # Weekly data, yearly seasonality
+                elif len(data) >= 12:
+                    period = 12  # Monthly data, yearly seasonality
+                else:
+                    period = 4  # Quarterly data
+            else:
+                period = None
+
+            decomposition = seasonal_decompose(data, model='additive', period=period)
+
+            # Calculate seasonality strength
+            seasonal_var = np.var(decomposition.seasonal.dropna())
+            residual_var = np.var(decomposition.resid.dropna())
+            seasonality_strength = seasonal_var / (seasonal_var + residual_var)
+
+            return {
+                'seasonality_detected': seasonality_strength > 0.1,
+                'seasonality_strength': self.to_decimal(seasonality_strength),
+                'seasonal_period': period,
+                'components_variance': {
+                    'trend': self.to_decimal(np.var(decomposition.trend.dropna())),
+                    'seasonal': self.to_decimal(seasonal_var),
+                    'residual': self.to_decimal(residual_var)
+                }
+            }
+        except Exception as e:
+            logger.warning(f"Could not perform seasonality analysis: {e}")
+            return {'error': 'Could not perform seasonality analysis'}
+
+    def calculate(self, analysis_type: str, **kwargs) -> Dict[str, Any]:
+        """Main statistical analysis dispatcher"""
+
+        analyses = {
+            'descriptive_statistics': lambda: self.descriptive_statistics(
+                kwargs['data'], kwargs.get('confidence_level', 0.95)
+            ),
+            'correlation_analysis': lambda: self.correlation_analysis(
+                kwargs['data'], kwargs.get('method', 'pearson')
+            ),
+            'hypothesis_testing': lambda: self.hypothesis_testing(
+                kwargs['data1'], kwargs.get('data2'), kwargs.get('test_type', 'one_sample_t'),
+                kwargs.get('alternative', 'two-sided'), kwargs.get('alpha', 0.05),
+                kwargs.get('null_value', 0)
+            ),
+            'time_series_analysis': lambda: self.time_series_analysis(kwargs['data'])
+        }
+
+        if analysis_type not in analyses:
+            raise ValidationError(f"Unknown analysis type: {analysis_type}")
+
+        result = analyses[analysis_type]()
+        result['metadata'] = self.get_metadata()
+        result['analysis_type'] = analysis_type
+
+        return result
+
+
+class ForecastingEngine(EconomicsBase):
+    """Economic forecasting using various methods"""
+
+    def __init__(self, precision: int = 8, base_currency: str = 'USD'):
+        super().__init__(precision, base_currency)
+
+    def simple_forecasting_methods(self, data: pd.Series,
+                                   forecast_periods: int = 12,
+                                   methods: List[str] = None) -> Dict[str, Any]:
+        """Simple forecasting methods for economic time series"""
+
+        if data.empty:
+            raise ValidationError("Empty time series provided")
+
+        # Clean data
+        clean_data = data.dropna()
+        if len(clean_data) < 5:
+            raise ValidationError("Insufficient data for forecasting")
+
+        if methods is None:
+            methods = ['naive', 'mean', 'linear_trend', 'exponential_smoothing']
+
+        forecasts = {}
+
+        for method in methods:
+            try:
+                if method == 'naive':
+                    forecasts[method] = self._naive_forecast(clean_data, forecast_periods)
+                elif method == 'mean':
+                    forecasts[method] = self._mean_forecast(clean_data, forecast_periods)
+                elif method == 'linear_trend':
+                    forecasts[method] = self._linear_trend_forecast(clean_data, forecast_periods)
+                elif method == 'exponential_smoothing':
+                    forecasts[method] = self._exponential_smoothing_forecast(clean_data, forecast_periods)
+                elif method == 'moving_average':
+                    forecasts[method] = self._moving_average_forecast(clean_data, forecast_periods)
+                else:
+                    logger.warning(f"Unknown forecasting method: {method}")
+
+            except Exception as e:
+                logger.error(f"Error in {method} forecasting: {e}")
+                forecasts[method] = {'error': str(e)}
+
+        # Generate forecast evaluation if we have enough data
+        evaluation = None
+        if len(clean_data) > forecast_periods * 2:
+            evaluation = self._evaluate_forecasting_methods(clean_data, forecast_periods, methods)
+
+        return {
+            'forecasts': forecasts,
+            'forecast_periods': forecast_periods,
+            'data_length': len(clean_data),
+            'methods_used': methods,
+            'evaluation': evaluation
+        }
+
+    def _naive_forecast(self, data: pd.Series, periods: int) -> Dict[str, Any]:
+        """Naive forecast - last value carried forward"""
+
+        last_value = data.iloc[-1]
+        forecast_values = [last_value] * periods
+
+        return {
+            'method': 'Naive (Random Walk)',
+            'forecast_values': [self.to_decimal(x) for x in forecast_values],
+            'description': 'Last observed value carried forward'
+        }
+
+    def _mean_forecast(self, data: pd.Series, periods: int) -> Dict[str, Any]:
+        """Mean forecast - historical mean"""
+
+        mean_value = data.mean()
+        forecast_values = [mean_value] * periods
+
+        return {
+            'method': 'Historical Mean',
+            'forecast_values': [self.to_decimal(x) for x in forecast_values],
+            'description': 'Historical average carried forward'
+        }
+
+    def _linear_trend_forecast(self, data: pd.Series, periods: int) -> Dict[str, Any]:
+        """Linear trend extrapolation"""
+
+        x = np.arange(len(data))
+        y = data.values
+
         # Fit linear regression
         slope, intercept, r_value, p_value, std_err = stats.linregress(x, y)
 
@@ -1173,180 +1350,3 @@ class ScenarioAnalyzer(EconomicsBase):
         result['analysis_type'] = analysis_type
 
         return result
-
-        slope, intercept, r_value, p_value, std_err = stats.linregress(x, y)
-
-        # Calculate trend strength
-        trend_strength = abs(r_value)
-
-        return {
-            'linear_trend': {
-                'slope': self.to_decimal(slope),
-                'intercept': self.to_decimal(intercept),
-                'r_squared': self.to_decimal(r_value ** 2),
-                'p_value': self.to_decimal(p_value),
-                'standard_error': self.to_decimal(std_err)
-            },
-            'trend_direction': 'Increasing' if slope > 0 else 'Decreasing' if slope < 0 else 'Flat',
-            'trend_strength': self.to_decimal(trend_strength),
-            'trend_significance': p_value < 0.05
-        }
-
-    def _analyze_seasonality(self, data: pd.Series) -> Dict[str, Any]:
-        """Analyze seasonality in time series"""
-
-        if len(data) < 24:  # Need at least 2 years of monthly data
-            return {'error': 'Insufficient data for seasonality analysis'}
-
-        try:
-            from statsmodels.tsa.seasonal import seasonal_decompose
-
-            # Infer frequency for decomposition
-            freq = pd.infer_freq(data.index)
-            if freq is None:
-                # Try to infer period based on data length
-                if len(data) >= 365:
-                    period = 365  # Daily data, yearly seasonality
-                elif len(data) >= 52:
-                    period = 52  # Weekly data, yearly seasonality
-                elif len(data) >= 12:
-                    period = 12  # Monthly data, yearly seasonality
-                else:
-                    period = 4  # Quarterly data
-            else:
-                period = None
-
-            decomposition = seasonal_decompose(data, model='additive', period=period)
-
-            # Calculate seasonality strength
-            seasonal_var = np.var(decomposition.seasonal.dropna())
-            residual_var = np.var(decomposition.resid.dropna())
-            seasonality_strength = seasonal_var / (seasonal_var + residual_var)
-
-            return {
-                'seasonality_detected': seasonality_strength > 0.1,
-                'seasonality_strength': self.to_decimal(seasonality_strength),
-                'seasonal_period': period,
-                'components_variance': {
-                    'trend': self.to_decimal(np.var(decomposition.trend.dropna())),
-                    'seasonal': self.to_decimal(seasonal_var),
-                    'residual': self.to_decimal(residual_var)
-                }
-            }
-        except Exception as e:
-            logger.warning(f"Could not perform seasonality analysis: {e}")
-            return {'error': 'Could not perform seasonality analysis'}
-
-    def calculate(self, analysis_type: str, **kwargs) -> Dict[str, Any]:
-        """Main statistical analysis dispatcher"""
-
-        analyses = {
-            'descriptive_statistics': lambda: self.descriptive_statistics(
-                kwargs['data'], kwargs.get('confidence_level', 0.95)
-            ),
-            'correlation_analysis': lambda: self.correlation_analysis(
-                kwargs['data'], kwargs.get('method', 'pearson')
-            ),
-            'hypothesis_testing': lambda: self.hypothesis_testing(
-                kwargs['data1'], kwargs.get('data2'), kwargs.get('test_type', 'one_sample_t'),
-                kwargs.get('alternative', 'two-sided'), kwargs.get('alpha', 0.05),
-                kwargs.get('null_value', 0)
-            ),
-            'time_series_analysis': lambda: self.time_series_analysis(kwargs['data'])
-        }
-
-        if analysis_type not in analyses:
-            raise ValidationError(f"Unknown analysis type: {analysis_type}")
-
-        result = analyses[analysis_type]()
-        result['metadata'] = self.get_metadata()
-        result['analysis_type'] = analysis_type
-
-        return result
-
-
-class ForecastingEngine(EconomicsBase):
-    """Economic forecasting using various methods"""
-
-    def __init__(self, precision: int = 8, base_currency: str = 'USD'):
-        super().__init__(precision, base_currency)
-
-    def simple_forecasting_methods(self, data: pd.Series,
-                                   forecast_periods: int = 12,
-                                   methods: List[str] = None) -> Dict[str, Any]:
-        """Simple forecasting methods for economic time series"""
-
-        if data.empty:
-            raise ValidationError("Empty time series provided")
-
-        # Clean data
-        clean_data = data.dropna()
-        if len(clean_data) < 5:
-            raise ValidationError("Insufficient data for forecasting")
-
-        if methods is None:
-            methods = ['naive', 'mean', 'linear_trend', 'exponential_smoothing']
-
-        forecasts = {}
-
-        for method in methods:
-            try:
-                if method == 'naive':
-                    forecasts[method] = self._naive_forecast(clean_data, forecast_periods)
-                elif method == 'mean':
-                    forecasts[method] = self._mean_forecast(clean_data, forecast_periods)
-                elif method == 'linear_trend':
-                    forecasts[method] = self._linear_trend_forecast(clean_data, forecast_periods)
-                elif method == 'exponential_smoothing':
-                    forecasts[method] = self._exponential_smoothing_forecast(clean_data, forecast_periods)
-                elif method == 'moving_average':
-                    forecasts[method] = self._moving_average_forecast(clean_data, forecast_periods)
-                else:
-                    logger.warning(f"Unknown forecasting method: {method}")
-
-            except Exception as e:
-                logger.error(f"Error in {method} forecasting: {e}")
-                forecasts[method] = {'error': str(e)}
-
-        # Generate forecast evaluation if we have enough data
-        evaluation = None
-        if len(clean_data) > forecast_periods * 2:
-            evaluation = self._evaluate_forecasting_methods(clean_data, forecast_periods, methods)
-
-        return {
-            'forecasts': forecasts,
-            'forecast_periods': forecast_periods,
-            'data_length': len(clean_data),
-            'methods_used': methods,
-            'evaluation': evaluation
-        }
-
-    def _naive_forecast(self, data: pd.Series, periods: int) -> Dict[str, Any]:
-        """Naive forecast - last value carried forward"""
-
-        last_value = data.iloc[-1]
-        forecast_values = [last_value] * periods
-
-        return {
-            'method': 'Naive (Random Walk)',
-            'forecast_values': [self.to_decimal(x) for x in forecast_values],
-            'description': 'Last observed value carried forward'
-        }
-
-    def _mean_forecast(self, data: pd.Series, periods: int) -> Dict[str, Any]:
-        """Mean forecast - historical mean"""
-
-        mean_value = data.mean()
-        forecast_values = [mean_value] * periods
-
-        return {
-            'method': 'Historical Mean',
-            'forecast_values': [self.to_decimal(x) for x in forecast_values],
-            'description': 'Historical average carried forward'
-        }
-
-    def _linear_trend_forecast(self, data: pd.Series, periods: int) -> Dict[str, Any]:
-        """Linear trend extrapolation"""
-
-        x = np.arange(len(data))
-        y = data.values
