@@ -3,7 +3,6 @@ import numpy as np
 from typing import Dict, List, Optional, Union, Any
 import json
 import statsmodels.api as sm
-from statsmodels.stats import power
 
 def ttest_power(
     effect_size: float,

@@ -4,7 +4,7 @@ from typing import Dict, List, Optional, Union, Any, Tuple
 import json
 import statsmodels.api as sm
 from statsmodels.stats import api as stats_api
-from statsmodels.stats import proportion, multitest, multicomp, diagnostic, anova, power, weightstats
+from statsmodels.stats import diagnostic
 
 def anova_oneway(
     *args,
@@ -130,19 +130,6 @@ def effectsize_2proportions(
             'effect_size': float(result)
         }
 
-def fleiss_kappa(
-    table: Union[np.ndarray, pd.DataFrame],
-    method: str = 'fleiss'
-) -> Dict[str, Any]:
-    """Fleiss' kappa for multiple raters"""
-    table = np.array(table) if not isinstance(table, (np.ndarray, pd.DataFrame)) else table
-
-    result = stats_api.fleiss_kappa(table, method=method)
-
-    return {
-        'kappa': float(result)
-    }
-
 def gof_chisquare_discrete(
     counts: Union[List, np.ndarray],
     probs: Union[List, np.ndarray],
@@ -157,69 +144,6 @@ def gof_chisquare_discrete(
     return {
         'statistic': float(result[0]),
         'pvalue': float(result[1])
-    }
-
-def lilliefors(
-    data: Union[List, np.ndarray],
-    dist: str = 'norm'
-) -> Dict[str, Any]:
-    """Lilliefors test for normality"""
-    data = np.array(data) if not isinstance(data, np.ndarray) else data
-
-    result = stats_api.lilliefors(data, dist=dist)
-
-    return {
-        'statistic': float(result[0]),
-        'pvalue': float(result[1])
-    }
-
-def linear_harvey_collier(
-    results
-) -> Dict[str, Any]:
-    """Harvey-Collier test for linearity"""
-    result = diagnostic.linear_harvey_collier(results)
-
-    return {
-        'statistic': float(result[0]),
-        'pvalue': float(result[1])
-    }
-
-def linear_rainbow(
-    results
-) -> Dict[str, Any]:
-    """Rainbow test for linearity"""
-    result = diagnostic.linear_rainbow(results)
-
-    return {
-        'statistic': float(result[0]),
-        'pvalue': float(result[1])
-    }
-
-def linear_reset(
-    results,
-    power: int = 3
-) -> Dict[str, Any]:
-    """Ramsey's RESET test"""
-    result = diagnostic.linear_reset(results, power=power)
-
-    return {
-        'statistic': float(result[0]),
-        'pvalue': float(result[1])
-    }
-
-def mcnemar(
-    table: Union[np.ndarray, pd.DataFrame],
-    exact: bool = True,
-    correction: bool = True
-) -> Dict[str, Any]:
-    """McNemar test"""
-    table = np.array(table) if not isinstance(table, (np.ndarray, pd.DataFrame)) else table
-
-    result = stats_api.mcnemar(table, exact=exact, correction=correction)
-
-    return {
-        'statistic': float(result.statistic),
-        'pvalue': float(result.pvalue)
     }
 
 def normal_ad(
@@ -244,27 +168,12 @@ def proportions_chisquare(
     count = np.array(count) if not isinstance(count, np.ndarray) else count
     nobs = np.array(nobs) if not isinstance(nobs, np.ndarray) else nobs
 
-    result = stats_api.proportions_chisquare(count, nobs, value=value)
+    statistic, pvalue, (table, _) = stats_api.proportions_chisquare(count, nobs, value=value)
 
     return {
-        'statistic': float(result[0]),
-        'pvalue': float(result[1]),
-        'df': int(result[2])
-    }
-
-def runstest_1samp(
-    data: Union[List, np.ndarray],
-    cutoff: str = 'mean',
-    correction: bool = True
-) -> Dict[str, Any]:
-    """Wald-Wolfowitz runs test"""
-    data = np.array(data) if not isinstance(data, np.ndarray) else data
-
-    result = stats_api.runstest_1samp(data, cutoff=cutoff, correction=correction)
-
-    return {
-        'statistic': float(result[0]),
-        'pvalue': float(result[1])
+        'statistic': float(statistic),
+        'pvalue': float(pvalue),
+        'df': len(table) - 1 if value is None else len(table)
     }
 
 def acorr_lm(
@@ -779,7 +688,7 @@ def het_white(
 def lilliefors(
     x: Union[List, np.ndarray, pd.Series],
     dist: str = 'norm',
-    pvalmethod: str = 'approx'
+    pvalmethod: str = 'table'
 ) -> Dict[str, Any]:
     """Lilliefors test for normality"""
     x = np.array(x) if not isinstance(x, (np.ndarray, pd.Series)) else x
@@ -827,13 +736,13 @@ def linear_rainbow(
 
 def linear_reset(
     results,
-    power: int = 2
+    power: int = 3
 ) -> Dict[str, Any]:
     """RESET test for linearity"""
     result = stats_api.linear_reset(results, power=power)
     return {
-        'f_statistic': float(result[0]),
-        'pvalue': float(result[1])
+        'statistic': float(result.statistic),
+        'pvalue': float(result.pvalue)
     }
 
 def local_fdr(
@@ -1032,20 +941,6 @@ def proportion_effectsize(
     }
 
 # Batch 5: Remaining stats functions (final batch)
-
-def proportions_chisquare(
-    count: Union[List, np.ndarray],
-    nobs: Union[List, np.ndarray]
-) -> Dict[str, Any]:
-    """Chi-square test for proportions"""
-    count = np.array(count) if not isinstance(count, np.ndarray) else count
-    nobs = np.array(nobs) if not isinstance(nobs, np.ndarray) else nobs
-    result = stats_api.proportions_chisquare(count, nobs)
-    return {
-        'statistic': float(result[0]),
-        'pvalue': float(result[1]),
-        'df': int(result[2])
-    }
 
 def proportions_ztest(
     count: Union[List, np.ndarray],
