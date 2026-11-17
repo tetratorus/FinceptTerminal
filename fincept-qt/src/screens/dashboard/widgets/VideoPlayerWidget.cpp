@@ -46,8 +46,7 @@ static bool host_matches(const QString& host, const QString& domain) {
 // or an empty string if it is not a YouTube video/live page.
 [[maybe_unused]] static QString normalized_youtube_url(const QString& url) {
     const QUrl u(url, QUrl::StrictMode);
-    if (!u.isValid() || (u.scheme() != "https" && u.scheme() != "http") || !u.userInfo().isEmpty() ||
-        u.port() != -1)
+    if (!u.isValid() || (u.scheme() != "https" && u.scheme() != "http") || !u.userInfo().isEmpty() || u.port() != -1)
         return {};
     const QString host = u.host().toLower();
     const QString path = u.path();
