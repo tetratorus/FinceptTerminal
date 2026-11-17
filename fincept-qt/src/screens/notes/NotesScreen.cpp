@@ -191,7 +191,15 @@ void NotesScreen::build_ui() {
     splitter->addWidget(build_category_sidebar());
     splitter->addWidget(build_notes_list_panel());
     splitter->addWidget(build_editor_panel());
+#ifdef Q_OS_IOS
+    // Three columns don't fit a phone: stack list above editor, drop the category
+    // sidebar (the list starts on "All notes").
+    splitter->setOrientation(Qt::Vertical);
+    splitter->widget(0)->hide();
+    splitter->setSizes({0, 280, 520});
+#else
     splitter->setSizes({200, 320, 600});
+#endif
     splitter->setStretchFactor(2, 1);
 
     root->addWidget(splitter);

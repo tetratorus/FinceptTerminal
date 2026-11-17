@@ -342,6 +342,8 @@ void LoginScreen::build_login_page() {
 
     email_input_ = new QLineEdit;
     email_input_->setFixedHeight(34);
+    // Stop touch keyboards (iOS) from auto-capitalising / autocorrecting the address.
+    email_input_->setInputMethodHints(Qt::ImhEmailCharactersOnly | Qt::ImhNoAutoUppercase | Qt::ImhNoPredictiveText);
     email_input_->setStyleSheet(input_style());
     vl->addWidget(email_input_);
 

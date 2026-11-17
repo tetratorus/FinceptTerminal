@@ -103,6 +103,10 @@ void PythonSetupBanner::set_mode(Mode mode) {
 }
 
 void PythonSetupBanner::refresh() {
+#ifdef Q_OS_IOS
+    set_mode(Mode::Hidden); // Python can't be installed on iOS, so there is nothing to offer
+    return;
+#endif
     auto& mgr = python::PythonSetupManager::instance();
     if (mgr.is_core_ready()) {
         set_mode(Mode::Hidden);

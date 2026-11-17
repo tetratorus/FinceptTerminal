@@ -98,6 +98,7 @@
 #include "ui/workspace/LayoutOpenDialog.h"
 #include "ui/workspace/LayoutSaveAsDialog.h"
 
+#include <QLayout>
 #include <QApplication>
 #include <QCloseEvent>
 #include <QDateTime>
@@ -275,7 +276,11 @@ WindowFrame::WindowFrame(int window_id, QWidget* parent, const WindowId& adopted
     // Minimum size must be small enough to allow OS window-snap (half/third screen).
     // On a 1920-wide display, left-snap = 960px. Use 800x500 as minimum so snapping
     // works on any 1080p+ monitor without the window bouncing back to centre.
-#ifndef Q_OS_IOS  // iOS windows are the screen size; an 800px floor overflows an iPhone
+#ifdef Q_OS_IOS
+    // iOS windows are the screen size: don't let the toolbars' combined minimum
+    // width (~1700px) grow the window past an iPhone screen; they clip instead.
+    layout()->setSizeConstraint(QLayout::SetNoConstraint);
+#else
     setMinimumSize(800, 500);
 #endif
 

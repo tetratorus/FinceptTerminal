@@ -233,6 +233,12 @@ void NewsScreen::build_ui() {
     // Ticker strip (22px)
     ticker_strip_ = new NewsTickerStrip(this);
     root->addWidget(ticker_strip_);
+#ifdef Q_OS_IOS
+    // The toolbars' minimum widths exceed a phone screen; let them clip so the
+    // feed / detail panel get the screen width instead of being pushed off it.
+    command_bar_->setSizePolicy(QSizePolicy::Ignored, command_bar_->sizePolicy().verticalPolicy());
+    ticker_strip_->setSizePolicy(QSizePolicy::Ignored, ticker_strip_->sizePolicy().verticalPolicy());
+#endif
 }
 
 void NewsScreen::connect_signals() {
@@ -782,6 +788,9 @@ void NewsScreen::on_manage_sources() {
 
 void NewsScreen::on_article_clicked(const services::NewsArticle& article) {
     detail_panel_->show_article(article);
+#ifdef Q_OS_IOS
+    feed_panel_->hide(); // no room for feed + detail side by side on a phone
+#endif
     feed_panel_->set_selected(article.id);
 
     // Re-show a previously-run AI analysis for this article, if one was saved.
@@ -848,6 +857,9 @@ void NewsScreen::on_article_clicked(const services::NewsArticle& article) {
 
 void NewsScreen::on_cluster_clicked(const services::NewsCluster& cluster) {
     detail_panel_->show_article(cluster.lead_article);
+#ifdef Q_OS_IOS
+    feed_panel_->hide(); // no room for feed + detail side by side on a phone
+#endif
 
     QVector<services::NewsArticle> related;
     for (const auto& a : cluster.articles) {
@@ -926,6 +938,9 @@ void NewsScreen::set_drawer_open(bool open) {
 void NewsScreen::on_detail_closed() {
     // Feed gets full width back when detail panel closes
     feed_panel_->model()->set_selected_id("");
+#ifdef Q_OS_IOS
+    feed_panel_->show();
+#endif
 }
 
 // ── Core data pipeline ──────────────────────────────────────────────────────
