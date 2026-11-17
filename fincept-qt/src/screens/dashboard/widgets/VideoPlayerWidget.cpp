@@ -35,9 +35,31 @@ static const PresetChannel kPresets[] = {
 
 static constexpr int kPresetCount = static_cast<int>(sizeof(kPresets) / sizeof(kPresets[0]));
 
-static bool is_youtube_url(const QString& url) {
-    return url.contains("youtube.com/watch") || url.contains("youtu.be/") || url.contains("youtube.com/live") ||
-           url.contains("youtube.com/@");
+static bool is_http_url(const QUrl& url) {
+    const QString scheme = url.scheme().toLower();
+    return url.isValid() && (scheme == "http" || scheme == "https") && !url.host().isEmpty();
+}
+
+// Host-based match: a substring check let "https://evil.example/?youtube.com/watch"
+// through to yt-dlp's generic extractor, which can hand back any stream URL.
+static bool is_youtube_url(const QString& raw) {
+    const QUrl url(raw);
+    if (!is_http_url(url))
+        return false;
+    const QString host = url.host().toLower();
+    const QString path = url.path();
+    if (host == "youtu.be")
+        return path.length() > 1;
+    if (host != "youtube.com" && !host.endsWith(".youtube.com"))
+        return false;
+    return path.startsWith("/watch") || path.startsWith("/live") || path.startsWith("/@");
+}
+
+// Only HTTP(S) sources reach QMediaPlayer: Qt's bundled FFmpeg follows RTSP
+// 3xx redirects without a limit (CVE-2026-107696), and other network schemes
+// (rtsp, rtmp, mms, udp, ...) are not needed for HLS/MP4 playback.
+[[maybe_unused]] static bool is_allowed_stream_url(const QString& raw) {
+    return is_http_url(QUrl(raw));
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -387,6 +409,15 @@ void VideoPlayerWidget::on_ytdlp_error(QProcess::ProcessError /*error*/) {
 void VideoPlayerWidget::play_direct(const QString& stream_url) {
 #ifdef HAS_QT_MULTIMEDIA
     set_loading(false);
+    if (!is_allowed_stream_url(stream_url)) {
+        player_->stop();
+        player_->setSource(QUrl());
+        status_label_->setText(tr("Unsupported stream URL. Only http:// and https:// streams are allowed."));
+        status_label_->show();
+        stack_->setCurrentIndex(1);
+        LOG_WARN("VideoPlayer", "Rejected non-HTTP(S) stream URL");
+        return;
+    }
     status_label_->hide();
     player_->setSource(QUrl(stream_url));
     player_->play();
