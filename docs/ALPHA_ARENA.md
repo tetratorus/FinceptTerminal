@@ -127,7 +127,7 @@ bypass for development on a flagged locale; release builds must leave it OFF.
 
 ## Dependencies
 
-* Qt 6.8.3 (Widgets, Network, WebSockets, Sql)
+* Qt 6.11.2 (Widgets, Network, WebSockets, Sql)
 * Python 3.11.9 (subprocess only — no Python in the engine)
 * Hyperliquid live mode requires libsecp256k1 + a keccak256 primitive (pending
   FetchContent — Phase 5c follow-up).

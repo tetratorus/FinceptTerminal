@@ -38,7 +38,7 @@ Fincept Terminal is an open-source native C++20/Qt6 financial intelligence platf
 | Layer         | Technology                                                                           |
 |---------------|--------------------------------------------------------------------------------------|
 | Language      | **C++20** — MSVC 19.38 (VS 2022 17.8) / GCC 12.3 / Apple Clang 15.0                  |
-| UI            | **Qt 6.8.3 EXACT** Widgets (pinned)                                                  |
+| UI            | **Qt 6.11.2 EXACT** Widgets (pinned)                                                  |
 | Charts        | Qt6 Charts                                                                           |
 | Networking    | Qt6 Network + Qt6 WebSockets                                                         |
 | Database      | Qt6 Sql (SQLite)                                                                     |
@@ -58,7 +58,7 @@ Pinned toolchain versions — enforced by CMake. Mismatch produces a clear fail-
 | C++ compiler  | MSVC 19.38 (VS 2022 17.8) / GCC 12.3 / Apple Clang 15.0 (Xcode 15.2)                    |
 | CMake         | **3.27.7** — [cmake.org](https://cmake.org/download/)                                   |
 | Ninja         | **1.11.1** — [releases](https://github.com/ninja-build/ninja/releases)                  |
-| Qt            | **6.8.3** — [Qt Online Installer](https://www.qt.io/download-qt-installer)              |
+| Qt            | **6.11.2** — [Qt Online Installer](https://www.qt.io/download-qt-installer)              |
 | Python        | **3.11.9** — [python.org](https://www.python.org/downloads/release/python-3119/)        |
 | Git           | latest — [git-scm.com](https://git-scm.com)                                             |
 
@@ -104,7 +104,7 @@ Manual configure if presets can't resolve Qt:
 
 ```powershell
 cmake -B build/win-release -G Ninja -DCMAKE_BUILD_TYPE=Release `
-  -DCMAKE_PREFIX_PATH="C:/Qt/6.8.3/msvc2022_64"
+  -DCMAKE_PREFIX_PATH="C:/Qt/6.11.2/msvc2022_64"
 cmake --build build/win-release
 ```
 

@@ -6,7 +6,7 @@ on:
 
 env:
   BUILD_TYPE: Release
-  QT_VERSION: "6.8.3"
+  QT_VERSION: "6.11.2"
   # qtserialport: the qtpositioning NMEA plugin (libqtposition_nmea) links
   # Qt6SerialPort; without it linuxdeploy/macdeployqt/windeployqt fail resolving
   # libQt6SerialPort. The app doesn't use serial GPS — this just satisfies deploy.
@@ -40,8 +40,8 @@ jobs:
           # ---- Linux x64 ----
           # qt_arch is NOT empty: this leg used to skip install-qt-action and
           # apt-install qt6-base-dev, which is Qt 6.2.4 on ubuntu-22.04 while
-          # CMakeLists.txt pins Qt 6.8 (FINCEPT_QT_PIN_MODE defaults to MINOR
-          # → find_package(Qt6 6.8 REQUIRED)). The job could never configure.
+          # CMakeLists.txt pins Qt 6.11 (FINCEPT_QT_PIN_MODE defaults to MINOR
+          # → find_package(Qt6 6.11 REQUIRED)). The job could never configure.
           # release.yml:588-595 documents that exact trap and installs Qt via
           # aqt; the fix had simply never been mirrored here.
           - os: ubuntu-22.04
@@ -96,7 +96,7 @@ jobs:
       # ubuntu-22.04 runners) and pin it via CC/CXX for the rest of the job.
       #
       # NO apt Qt packages here — ubuntu-22.04 ships Qt 6.2 and CMakeLists.txt
-      # pins Qt 6.8, so `qt6-base-dev` & friends made find_package(Qt6 6.8)
+      # pins Qt 6.11, so `qt6-base-dev` & friends made find_package(Qt6 6.11)
       # fail outright. Qt comes from install-qt-action below (as it already
       # did on Windows/macOS, and as release.yml does on all three platforms).
       # The XCB / GL / fontconfig system libs stay: Qt's xcb platform plugin
@@ -167,7 +167,7 @@ jobs:
 
       # ---- Qt6 target (all platforms) ----
       # Linux is no longer excluded — see the matrix comment on the Linux
-      # entry: apt Qt 6.2 can never satisfy CMakeLists' 6.8 pin.
+      # entry: apt Qt 6.2 can never satisfy CMakeLists' 6.11 pin.
       - name: Install Qt6
         uses: jurplel/install-qt-action@v4
         with:

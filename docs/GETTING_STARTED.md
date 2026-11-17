@@ -47,7 +47,7 @@ Contributions land in the open-source edition. Private datasets, point-in-time h
 |------|-----------------|-------|
 | **C++ compiler** | MSVC 19.40+ / GCC 12.3+ / Apple Clang 15.0+ | See platform-specific instructions below |
 | **CMake** | 3.27+ | Build system |
-| **Qt** | 6.8.x (6.8.3 recommended) | UI framework |
+| **Qt** | 6.11.x (6.11.2 recommended) | UI framework |
 | **Python** | 3.11.x | Embedded analytics runtime |
 
 Optional (faster builds):
@@ -77,14 +77,14 @@ Requires Xcode 15.2+ (Apple Clang 15.0).
 - **Linux**: `sudo apt install -y cmake` (verify `cmake --version` >= 3.27; if older, download from [cmake.org](https://cmake.org/download/))
 - **macOS**: `brew install cmake`
 
-### Step 3 — Install Qt 6.8.3
+### Step 3 — Install Qt 6.11.2
 
 Download the **Qt Online Installer** from https://www.qt.io/download-qt-installer
 
-Select **Qt 6.8.3** and your platform kit:
-- **Windows**: MSVC 2022 64-bit (default install: `C:\Qt\6.8.3\msvc2022_64`)
-- **Linux**: Desktop gcc 64-bit (default install: `~/Qt/6.8.3/gcc_64`)
-- **macOS**: macOS (default install: `~/Qt/6.8.3/macos`)
+Select **Qt 6.11.2** and your platform kit:
+- **Windows**: MSVC 2022 64-bit (default install: `C:\Qt\6.11.2\msvc2022_64`)
+- **Linux**: Desktop gcc 64-bit (default install: `~/Qt/6.11.2/gcc_64`)
+- **macOS**: macOS (default install: `~/Qt/6.11.2/macos`)
 
 **Linux system packages (alternative):**
 ```bash
@@ -112,13 +112,13 @@ cd FinceptTerminal/fincept-qt
 **Option A — Environment variable (recommended, set once):**
 ```bash
 # Windows (PowerShell)
-$env:QT_DIR = "C:\Qt\6.8.3\msvc2022_64"
+$env:QT_DIR = "C:\Qt\6.11.2\msvc2022_64"
 
 # Linux
-export QT_DIR=~/Qt/6.8.3/gcc_64
+export QT_DIR=~/Qt/6.11.2/gcc_64
 
 # macOS
-export QT_DIR=~/Qt/6.8.3/macos
+export QT_DIR=~/Qt/6.11.2/macos
 ```
 
 **Option B — CMakeUserPresets.json (persistent per-clone):**
@@ -130,7 +130,7 @@ cp CMakeUserPresets.json.example CMakeUserPresets.json
 **Option C — Command line (one-off):**
 ```bash
 cmake -B build/win-release -DCMAKE_BUILD_TYPE=Release \
-  -DCMAKE_PREFIX_PATH="/path/to/Qt/6.8.3/kit"
+  -DCMAKE_PREFIX_PATH="/path/to/Qt/6.11.2/kit"
 ```
 
 > **Note:** If you installed Qt to the default location, CMake will auto-detect it — no configuration needed.
@@ -325,7 +325,7 @@ git push origin fix/issue-123-description
 
 Set the `QT_DIR` environment variable or pass `-DCMAKE_PREFIX_PATH`:
 ```bash
-cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="/path/to/Qt/6.8.3/platform"
+cmake -B build -DCMAKE_BUILD_TYPE=Release -DCMAKE_PREFIX_PATH="/path/to/Qt/6.11.2/platform"
 ```
 
 ### Windows: "Cannot open include file: 'stddef.h'"

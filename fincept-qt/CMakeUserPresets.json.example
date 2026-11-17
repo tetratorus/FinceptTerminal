@@ -6,7 +6,7 @@
       "displayName": "My Windows Release",
       "inherits": "win-release",
       "cacheVariables": {
-        "CMAKE_PREFIX_PATH": "C:/Qt/6.8.3/msvc2022_64"
+        "CMAKE_PREFIX_PATH": "C:/Qt/6.11.2/msvc2022_64"
       }
     },
     {
@@ -14,7 +14,7 @@
       "displayName": "My Linux Release",
       "inherits": "linux-release",
       "cacheVariables": {
-        "CMAKE_PREFIX_PATH": "$env{HOME}/Qt/6.8.3/gcc_64"
+        "CMAKE_PREFIX_PATH": "$env{HOME}/Qt/6.11.2/gcc_64"
       }
     },
     {
@@ -22,7 +22,7 @@
       "displayName": "My macOS Release",
       "inherits": "macos-release",
       "cacheVariables": {
-        "CMAKE_PREFIX_PATH": "$env{HOME}/Qt/6.8.3/macos"
+        "CMAKE_PREFIX_PATH": "$env{HOME}/Qt/6.11.2/macos"
       }
     }
   ],

@@ -128,7 +128,7 @@ Latest release: **v4.5.2** — [View all releases](https://github.com/Fincept-Co
 | **macOS Apple Silicon** | [FinceptTerminal-macOS-arm64.dmg](https://github.com/Fincept-Corporation/FinceptTerminal/releases/download/v4.5.2/FinceptTerminal-4.5.2-macos-arm64-setup.dmg) | Open DMG → drag to Applications |
 <!-- DOWNLOAD-TABLE-END -->
 
-**Build from source** — Linux/macOS: `git clone … && ./setup.sh`. Windows and manual builds, the pinned toolchain (**CMake 3.27.7 · Ninja 1.11.1 · Qt 6.8.3 · Python 3.11.9**) and troubleshooting live in **[docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)**. Versions are pinned — newer or older ones are unsupported.
+**Build from source** — Linux/macOS: `git clone … && ./setup.sh`. Windows and manual builds, the pinned toolchain (**CMake 3.27.7 · Ninja 1.11.1 · Qt 6.11.2 · Python 3.11.9**) and troubleshooting live in **[docs/GETTING_STARTED.md](docs/GETTING_STARTED.md)**. Versions are pinned — newer or older ones are unsupported.
 
 > Looking for the Enterprise build? It has its own signed installers for Windows, macOS and Linux, behind an Enterprise login — [get them here](https://fincept.in/enterprise).
 

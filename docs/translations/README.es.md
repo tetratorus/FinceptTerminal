@@ -78,7 +78,7 @@ Enterprise necesita su propia cuenta — las cuentas gratuitas de Fincept no sir
 
 Los instaladores para **Windows x64**, **Linux x64** (`.run` / `.deb` / `.rpm`) y **macOS (Apple silicon)** están en la [página de releases](https://github.com/Fincept-Corporation/FinceptTerminal/releases/latest).
 
-**Compilar desde el código** — Linux/macOS: `git clone … && ./setup.sh`. Windows, compilaciones manuales, el conjunto de herramientas fijado (**CMake 3.27.7 · Ninja 1.11.1 · Qt 6.8.3 · Python 3.11.9**) y la resolución de problemas están en **[docs/GETTING_STARTED.md](../GETTING_STARTED.md)**. Las versiones están fijadas — otras no están soportadas.
+**Compilar desde el código** — Linux/macOS: `git clone … && ./setup.sh`. Windows, compilaciones manuales, el conjunto de herramientas fijado (**CMake 3.27.7 · Ninja 1.11.1 · Qt 6.11.2 · Python 3.11.9**) y la resolución de problemas están en **[docs/GETTING_STARTED.md](../GETTING_STARTED.md)**. Las versiones están fijadas — otras no están soportadas.
 
 > ¿Buscas la compilación Enterprise? Tiene sus propios instaladores firmados para Windows, macOS y Linux, detrás de un inicio de sesión Enterprise — [consíguelos aquí](https://fincept.in/enterprise).
 

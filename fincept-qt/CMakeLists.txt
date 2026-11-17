@@ -383,14 +383,16 @@ endif()
 # installer. Local development can tolerate patch drift.
 #
 # Pin modes (set via -DFINCEPT_QT_PIN_MODE=...):
-#   EXACT  — require 6.8.3 exactly. Use for CI / release builds.
-#   MINOR  — require 6.8.x (any patch). Default for developer builds — lets
+#   EXACT  — require 6.11.2 exactly. Use for CI / release builds.
+#   MINOR  — require 6.11.2 or a newer patch. Older Qt (incl. 6.8.3 and
+#            6.11.0/6.11.1) is affected by CVE-2026-16762, a QXmlStreamReader
+#            DoS reachable via RSS/Atom feeds. Default for developer builds — lets
 #            "qt maintenance tool" patch updates work without breaking config.
 #   ANY    — accept any Qt6 found on the system. Local experimentation only.
 #
 # Legacy FINCEPT_ALLOW_QT_DRIFT=ON is honoured and maps to ANY for back-compat.
-set(FINCEPT_QT_VERSION 6.8.3)
-set(FINCEPT_QT_VERSION_MINOR 6.8)
+set(FINCEPT_QT_VERSION 6.11.2)
+set(FINCEPT_QT_VERSION_MINOR 6.11)
 set(FINCEPT_QT_PIN_MODE "MINOR" CACHE STRING "Qt version pin mode: EXACT|MINOR|ANY")
 set_property(CACHE FINCEPT_QT_PIN_MODE PROPERTY STRINGS EXACT MINOR ANY)
 if(FINCEPT_ALLOW_QT_DRIFT)
@@ -436,19 +438,19 @@ if(NOT CMAKE_PREFIX_PATH)
         # Probe common Qt Online Installer default locations.
         if(WIN32)
             file(GLOB _fincept_qt_candidates
-                "C:/Qt/6.8.*/msvc*_64"
-                "C:/Qt/6.8.*/mingw*_64"
-                "$ENV{USERPROFILE}/Qt/6.8.*/msvc*_64")
+                "C:/Qt/6.11.*/msvc*_64"
+                "C:/Qt/6.11.*/mingw*_64"
+                "$ENV{USERPROFILE}/Qt/6.11.*/msvc*_64")
         elseif(APPLE)
             file(GLOB _fincept_qt_candidates
-                "$ENV{HOME}/Qt/6.8.*/macos"
-                "/opt/Qt/6.8.*/macos"
-                "/usr/local/Qt/6.8.*/macos")
+                "$ENV{HOME}/Qt/6.11.*/macos"
+                "/opt/Qt/6.11.*/macos"
+                "/usr/local/Qt/6.11.*/macos")
         else()
             file(GLOB _fincept_qt_candidates
-                "$ENV{HOME}/Qt/6.8.*/gcc_64"
-                "/opt/Qt/6.8.*/gcc_64"
-                "/usr/local/Qt/6.8.*/gcc_64")
+                "$ENV{HOME}/Qt/6.11.*/gcc_64"
+                "/opt/Qt/6.11.*/gcc_64"
+                "/usr/local/Qt/6.11.*/gcc_64")
         endif()
         list(SORT _fincept_qt_candidates ORDER DESCENDING)
         list(LENGTH _fincept_qt_candidates _fincept_qt_count)
@@ -466,7 +468,7 @@ endif()
 if(FINCEPT_QT_PIN_MODE STREQUAL "EXACT")
     set(_FINCEPT_QT_VER_ARGS ${FINCEPT_QT_VERSION} EXACT)
 elseif(FINCEPT_QT_PIN_MODE STREQUAL "MINOR")
-    set(_FINCEPT_QT_VER_ARGS ${FINCEPT_QT_VERSION_MINOR})  # any 6.8.x
+    set(_FINCEPT_QT_VER_ARGS ${FINCEPT_QT_VERSION})  # 6.11.2 or newer
 else()
     set(_FINCEPT_QT_VER_ARGS "")  # ANY: no version constraint
 endif()
@@ -474,17 +476,17 @@ endif()
 find_package(Qt6 ${_FINCEPT_QT_VER_ARGS} QUIET COMPONENTS Widgets)
 if(NOT Qt6_FOUND)
     message(FATAL_ERROR
-        "Qt6 not found. Fincept Terminal requires Qt 6.8.x.\n\n"
+        "Qt6 not found. Fincept Terminal requires Qt 6.11.x.\n\n"
         "Fix (pick one):\n"
         "  1. Set the QT_DIR environment variable:\n"
-        "       Windows:  set QT_DIR=C:\\Qt\\6.8.3\\msvc2022_64\n"
-        "       Linux:    export QT_DIR=~/Qt/6.8.3/gcc_64\n"
-        "       macOS:    export QT_DIR=~/Qt/6.8.3/macos\n\n"
+        "       Windows:  set QT_DIR=C:\\Qt\\6.11.2\\msvc2022_64\n"
+        "       Linux:    export QT_DIR=~/Qt/6.11.2/gcc_64\n"
+        "       macOS:    export QT_DIR=~/Qt/6.11.2/macos\n\n"
         "  2. Copy CMakeUserPresets.json.example to CMakeUserPresets.json\n"
         "     and set CMAKE_PREFIX_PATH to your Qt install path.\n\n"
         "  3. Pass it on the command line:\n"
-        "       cmake -DCMAKE_PREFIX_PATH=/path/to/Qt/6.8.3/kit ...\n\n"
-        "Install Qt 6.8.3 from: https://www.qt.io/download-qt-installer")
+        "       cmake -DCMAKE_PREFIX_PATH=/path/to/Qt/6.11.2/kit ...\n\n"
+        "Install Qt 6.11.2 from: https://www.qt.io/download-qt-installer")
 endif()
 
 find_package(Qt6 ${_FINCEPT_QT_VER_ARGS} REQUIRED COMPONENTS
@@ -745,7 +747,7 @@ else()
     target_compile_options(qgeoview PRIVATE -w -Wno-error)
 endif()
 
-# Qt 6.8.3's FindWrapOpenGL.cmake adds "-framework AGL" which was removed in
+# Qt 6.11.2's FindWrapOpenGL.cmake adds "-framework AGL" which was removed in
 # macOS 14 (Sonoma). The patch in setup.sh fixes this at the Qt install level.
 # As a safety net, scrub AGL from qgeoview's resolved link libraries too.
 # See GitHub issue #140.

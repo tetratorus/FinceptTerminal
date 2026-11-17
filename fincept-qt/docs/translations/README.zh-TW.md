@@ -84,7 +84,7 @@ FinceptTerminal 採用雙授權制：
 
 本分支與原版相同，需要：
 - Python 3.11.9（由 CMake 自動管理）
-- Qt 6.8.3
+- Qt 6.11.2
 - CMake 3.27+
 - C++20 編譯器（MSVC 2022 / GCC 12+ / Apple Clang 15+）
 

@@ -20,7 +20,7 @@ cmake --build --preset win-dev
 Or without a preset:
 
 ```bash
-cmake -B build -DCMAKE_PREFIX_PATH=/path/to/Qt/6.8.3/kit -DFINCEPT_BUILD_TESTS=ON
+cmake -B build -DCMAKE_PREFIX_PATH=/path/to/Qt/6.11.2/kit -DFINCEPT_BUILD_TESTS=ON
 cmake --build build
 ```
 
