@@ -633,7 +633,7 @@ async def stdin_command_loop(exchange, exchange_id, caps, ticker_cache, state):
             kept = [t for t in state["tasks"] if getattr(t, "ws_kind", None) != "ohlcv"]
             new_ohlcv = asyncio.create_task(supervise(
                 f"ohlcv:{state['primary']}",
-                lambda: watch_ohlcv(exchange, state["primary"], tf)))
+                lambda sym=state["primary"], tf=tf: watch_ohlcv(exchange, sym, tf)))
             new_ohlcv.ws_kind = "ohlcv"
             state["tasks"] = kept + [new_ohlcv]
             await _cancel_tasks(old_ohlcv)
