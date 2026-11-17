@@ -35,9 +35,34 @@ static const PresetChannel kPresets[] = {
 
 static constexpr int kPresetCount = static_cast<int>(sizeof(kPresets) / sizeof(kPresets[0]));
 
+static bool host_matches(const QString& host, const QString& domain) {
+    return host == domain || host.endsWith(QLatin1Char('.') + domain);
+}
+
+// Only YouTube links are accepted: arbitrary media URLs would be probed and
+// decoded by the FFmpeg bundled with Qt Multimedia (e.g. CVE-2026-125213), so
+// untrusted containers/codecs must never reach QMediaPlayer directly. The host
+// is parsed rather than substring-matched so "evil.com/youtube.com/watch" fails.
 static bool is_youtube_url(const QString& url) {
-    return url.contains("youtube.com/watch") || url.contains("youtu.be/") || url.contains("youtube.com/live") ||
-           url.contains("youtube.com/@");
+    const QUrl u(url, QUrl::StrictMode);
+    if (!u.isValid() || (u.scheme() != "https" && u.scheme() != "http") || !u.userInfo().isEmpty())
+        return false;
+    const QString host = u.host().toLower();
+    const QString path = u.path();
+    if (host == "youtu.be")
+        return path.length() > 1;
+    if (host != "youtube.com" && host != "www.youtube.com" && host != "m.youtube.com")
+        return false;
+    return path == "/watch" || path.startsWith("/live/") || path.startsWith("/@");
+}
+
+// yt-dlp output for a YouTube link must point back at Google's video CDN.
+static bool is_trusted_resolved_stream(const QString& url) {
+    const QUrl u(url, QUrl::StrictMode);
+    if (!u.isValid() || u.scheme() != "https" || !u.userInfo().isEmpty())
+        return false;
+    const QString host = u.host().toLower();
+    return host_matches(host, "googlevideo.com") || host_matches(host, "youtube.com");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -124,7 +149,7 @@ void VideoPlayerWidget::build_channel_list() {
     irl->setSpacing(4);
 
     url_input_ = new QLineEdit;
-    url_input_->setPlaceholderText(tr("YouTube URL, HLS (.m3u8), MP4, or direct stream..."));
+    url_input_->setPlaceholderText(tr("YouTube URL (youtube.com or youtu.be)..."));
     connect(url_input_, &QLineEdit::returnPressed, this, &VideoPlayerWidget::play_custom_url);
     irl->addWidget(url_input_, 1);
 
@@ -227,6 +252,15 @@ void VideoPlayerWidget::play_url(const QString& url, const QString& title) {
     // YouTube result). Cancel any earlier resolution first.
     cancel_ytdlp();
 
+    if (!is_youtube_url(url)) {
+        LOG_WARN("VideoPlayer", "Rejected non-YouTube stream URL");
+        stack_->setCurrentIndex(1);
+        set_loading(false);
+        status_label_->setText(tr("Only YouTube links are supported."));
+        status_label_->show();
+        return;
+    }
+
     current_url_ = url;
     current_title_ = title;
     pending_title_ = title;
@@ -234,11 +268,7 @@ void VideoPlayerWidget::play_url(const QString& url, const QString& title) {
     set_title(tr("LIVE TV — %1").arg(title.toUpper()));
 
 #ifdef HAS_QT_MULTIMEDIA
-    if (is_youtube_url(url)) {
-        resolve_youtube_and_play(url, title);
-    } else {
-        play_direct(url);
-    }
+    resolve_youtube_and_play(url, title);
 #else
     QDesktopServices::openUrl(QUrl(url));
 #endif
@@ -365,6 +395,14 @@ void VideoPlayerWidget::on_ytdlp_finished(int exit_code, QProcess::ExitStatus /*
         set_loading(false);
         status_label_->setText(tr("Could not extract stream URL."));
         status_label_->show();
+        return;
+    }
+
+    if (!is_trusted_resolved_stream(stream_url)) {
+        set_loading(false);
+        status_label_->setText(tr("Resolved stream is not hosted by YouTube."));
+        status_label_->show();
+        LOG_WARN("VideoPlayer", "Rejected yt-dlp stream URL outside YouTube CDN");
         return;
     }
 
@@ -530,7 +568,7 @@ void VideoPlayerWidget::retranslateUi() {
     if (custom_header_)
         custom_header_->setText(tr("CUSTOM STREAM"));
     if (url_input_)
-        url_input_->setPlaceholderText(tr("YouTube URL, HLS (.m3u8), MP4, or direct stream..."));
+        url_input_->setPlaceholderText(tr("YouTube URL (youtube.com or youtu.be)..."));
     if (play_btn_)
         play_btn_->setText(tr("PLAY"));
     if (helper_label_)
