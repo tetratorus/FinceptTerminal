@@ -290,8 +290,8 @@ class MADealParser:
             r'([A-Z][A-Za-z0-9\s&,\.]+?(?:Inc\.|Corp\.|LLC|Ltd\.|Holdings|Media))\s+(?:has\s+)?agreed\s+to\s+acquire',
             r'([A-Z][A-Za-z0-9\s&,\.]+?(?:Inc\.|Corp\.|LLC|Ltd\.|Holdings|Media))\s+(?:will\s+)?acquire[ds]?\s+(?:all|the)',
             # Without suffix — 1-4 title-case words (catches "Skydance", "Apollo Global Management")
-            r'(?:merger\s+with|combination\s+with|transaction\s+with)\s+([A-Z][A-Za-z0-9]+(?:\s+[A-Z][A-Za-z0-9]+){0,3})',
-            r'(?:will\s+be\s+acquired\s+by|to\s+be\s+acquired\s+by|acquired\s+by)\s+([A-Z][A-Za-z0-9]+(?:\s+[A-Z][A-Za-z0-9]+){0,3})',
+            r'(?:merger\s+with|combination\s+with|transaction\s+with)\s+([A-Z][A-Za-z0-9]+(?:\s+[A-Z][A-Za-z0-9]+){0,3})\b',
+            r'(?:will\s+be\s+acquired\s+by|to\s+be\s+acquired\s+by|acquired\s+by)\s+([A-Z][A-Za-z0-9]+(?:\s+[A-Z][A-Za-z0-9]+){0,3})\b',
         ]
 
         # Patterns to find the target name (used when filer is the acquirer)
@@ -311,7 +311,7 @@ class MADealParser:
             # "Target" defined term common in 8-K acquisition filings
             r'(?:the\s+)?(?:Target|Company)[,\s]+([A-Z][A-Za-z0-9\s&,\.]+?(?:Inc\.|Corp\.|LLC|Ltd\.|Company|Corporation|Holdings))',
             # Without corporate suffix — 1-4 title-case words
-            r'completed\s+(?:the\s+)?acquisition\s+of\s+([A-Z][A-Za-z0-9]+(?:\s+[A-Z][A-Za-z0-9]+){0,3})',
+            r'completed\s+(?:the\s+)?acquisition\s+of\s+([A-Z][A-Za-z0-9]+(?:\s+[A-Z][A-Za-z0-9]+){0,3})\b',
             r'acquired\s+([A-Z][A-Za-z0-9]+(?:\s+[A-Z][A-Za-z0-9]+){0,3})\s+(?:for|in\s+a\s+deal|in\s+a\s+transaction)',
         ]
 
