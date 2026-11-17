@@ -45,11 +45,11 @@ class LiveTradingFeaturesAlgorithm(QCAlgorithm):
 
 
     ### New Bitcoin Data Event
-    def on_data(Bitcoin, data):
+    def on_bitcoin_data(self, data):
         if self.live_mode:
             self.set_runtime_statistic('BTC', str(data.close))
 
-        if not self.portfolio.hold_stock:
+        if not self.portfolio['BTC'].hold_stock:
             self.market_order('BTC', 100)
 
             ##Send a notification email/SMS/web request on events:
@@ -65,6 +65,10 @@ class LiveTradingFeaturesAlgorithm(QCAlgorithm):
 
     ### Raises the data event
     def on_data(self, data):
+        ##The engine only calls on_data(slice): hand the custom Bitcoin data to its own handler
+        if data.contains_key('BTC'):
+            self.on_bitcoin_data(data['BTC'])
+
         if (not self.portfolio['IBM'].hold_stock) and data.contains_key('IBM'):
             quantity = int(np.floor(self.portfolio.margin_remaining / data['IBM'].close))
             self.market_order('IBM',quantity)

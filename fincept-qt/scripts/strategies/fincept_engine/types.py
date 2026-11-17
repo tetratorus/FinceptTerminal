@@ -248,6 +248,10 @@ class SecurityHolding:
         return self.quantity != 0
 
     @property
+    def hold_stock(self) -> bool:
+        return self.invested
+
+    @property
     def is_long(self) -> bool:
         return self.quantity > 0
 
