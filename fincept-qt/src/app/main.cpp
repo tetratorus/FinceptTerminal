@@ -1211,6 +1211,13 @@ int main(int argc, char* argv[]) {
         setup_status.needs_setup = false;
     }
 
+#ifdef Q_OS_IOS
+    // No embedded Python on iOS: boot straight into the app; Python-backed
+    // features report themselves unavailable.
+    setup_status.needs_setup = false;
+    setup_status.needs_package_sync = false;
+#endif
+
     if (setup_status.needs_setup) {
         LOG_INFO("App", "Python environment not ready — showing setup screen");
 
