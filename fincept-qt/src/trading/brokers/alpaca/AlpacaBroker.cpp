@@ -5,6 +5,7 @@
 #include "trading/brokers/BrokerClientOrderId.h"
 #include "trading/brokers/BrokerHttp.h"
 #include "trading/brokers/BrokerLogRedact.h"
+#include "trading/brokers/alpaca/AlpacaEnvironment.h"
 
 #include <QDateTime>
 #include <QJsonArray>
@@ -72,28 +73,13 @@ QString alpaca_qty(double quantity) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 QString AlpacaBroker::trading_url(const BrokerCredentials& creds) {
-    // A PK* key is a paper key and cannot authenticate on the live host — never send one
-    // there, even if additional_data was stored as "live".
-    if (creds.api_key.startsWith("PK", Qt::CaseInsensitive))
-        return "https://paper-api.alpaca.markets";
-    // additional_data stores "live"/"paper" set during exchange_token.
-    // Fallback: detect from key prefix (AK=live, PK=paper) for stale/missing additional_data.
-    bool is_live = (creds.additional_data == "live") ||
-                   (creds.additional_data.isEmpty() && creds.api_key.startsWith("AK", Qt::CaseInsensitive));
-    return is_live ? "https://api.alpaca.markets" : "https://paper-api.alpaca.markets";
+    return alpaca_env::trading_url(creds.api_key, creds.additional_data);
 }
 
-// A PAPER-mode order may reach Alpaca only for credentials positively identified as paper: a
-// PK* key not marked live, or a set that authenticated against paper-api (additional_data ==
-// "paper") and is not an AK* live key. Live, contradictory (a PK key stored as "live", an AK
-// key stored as "paper") and unidentifiable credentials are NOT paper. Every credential set
-// that returns true here resolves to paper-api in trading_url().
+// PAPER-mode orders reach Alpaca only for credentials positively identified as paper; see
+// alpaca_env::is_paper_environment. Every set that returns true resolves to paper-api.
 bool AlpacaBroker::is_paper_environment(const BrokerCredentials& creds) const {
-    if (creds.api_key.isEmpty() || creds.additional_data == "live")
-        return false;
-    if (creds.api_key.startsWith("AK", Qt::CaseInsensitive))
-        return false;
-    return creds.api_key.startsWith("PK", Qt::CaseInsensitive) || creds.additional_data == "paper";
+    return alpaca_env::is_paper_environment(creds.api_key, creds.additional_data);
 }
 
 QMap<QString, QString> AlpacaBroker::auth_headers(const BrokerCredentials& creds) const {
@@ -108,21 +94,11 @@ QMap<QString, QString> AlpacaBroker::auth_headers(const BrokerCredentials& creds
 // auth_code from UI combo is used as a hint but key prefix wins.
 TokenExchangeResponse AlpacaBroker::exchange_token(const QString& api_key, const QString& api_secret,
                                                    const QString& auth_code) {
-    // Key prefix detection: AK = live key, PK = paper key
-    QString env;
-    if (api_key.startsWith("AK", Qt::CaseInsensitive))
-        env = "live";
-    else if (api_key.startsWith("PK", Qt::CaseInsensitive))
-        env = "paper";
-    else
-        env = (auth_code == "live") ? "live" : "paper"; // fallback to UI selection
-
     QMap<QString, QString> headers = {
         {"APCA-API-KEY-ID", api_key}, {"APCA-API-SECRET-KEY", api_secret}, {"Accept", "application/json"}};
 
     auto try_env = [&](const QString& e) -> TokenExchangeResponse {
-        const QString base = (e == "live") ? "https://api.alpaca.markets" : "https://paper-api.alpaca.markets";
-        auto resp = BrokerHttp::instance().get(base + "/v2/account", headers);
+        auto resp = BrokerHttp::instance().get(alpaca_env::base_url_for(e) + "/v2/account", headers);
         TokenExchangeResponse r;
         if (!resp.success) {
             r.error = resp.error.isEmpty() ? resp.raw_body : resp.error;
@@ -135,12 +111,15 @@ TokenExchangeResponse AlpacaBroker::exchange_token(const QString& api_key, const
         return r;
     };
 
-    auto result = try_env(env);
-    if (!result.success) {
-        // Try opposite env as fallback
-        const QString other = (env == "live") ? "paper" : "live";
-        LOG_INFO("AlpacaBroker", QString("Auth failed on %1, trying %2").arg(env, other));
-        result = try_env(other);
+    // A PK* paper key is tried on paper-api only — never retried against the live host.
+    const QStringList envs = alpaca_env::auth_environments(api_key, auth_code);
+    TokenExchangeResponse result;
+    for (int i = 0; i < envs.size(); ++i) {
+        if (i > 0)
+            LOG_INFO("AlpacaBroker", QString("Auth failed on %1, trying %2").arg(envs[i - 1], envs[i]));
+        result = try_env(envs[i]);
+        if (result.success)
+            break;
     }
     return result;
 }

@@ -23,7 +23,7 @@
 # signal about the unit, not about this file: extract the pure logic into a small
 # header (or a leaf .cpp) and test that. Do not grow the link line.
 #
-# Current cost of the whole suite: 4 executables, 7 translation units.
+# Current cost of the whole suite: 5 executables, 8 translation units.
 # ─────────────────────────────────────────────────────────────────────────────
 
 # Qt Test ships with every Qt installation, so this adds no new dependency.
@@ -127,4 +127,9 @@ fincept_add_test(tst_indicator_engine
     tst_indicator_engine.cpp
     "${PROJECT_SOURCE_DIR}/src/algo_engine/IndicatorEngine.cpp")
 
-message(STATUS "Fincept tests: tst_broker_modify_fields, tst_result, tst_order_validator, tst_indicator_engine")
+# src/trading/brokers/alpaca/AlpacaEnvironment.h — header-only, zero app sources.
+fincept_add_test(tst_alpaca_environment
+    tst_alpaca_environment.cpp)
+
+message(STATUS "Fincept tests: tst_broker_modify_fields, tst_result, tst_order_validator, tst_indicator_engine, "
+               "tst_alpaca_environment")
