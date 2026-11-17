@@ -4,6 +4,7 @@
 #include "ui/theme/ThemeManager.h"
 
 #include <QEvent>
+#include <QScroller>
 #include <QStyle>
 #include <QVariant>
 
@@ -15,6 +16,9 @@ TabBar::TabBar(QWidget* parent) : QWidget(parent) {
     scroll_area->setWidgetResizable(true);
     scroll_area->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
     scroll_area->setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+#ifdef Q_OS_IOS
+    QScroller::grabGesture(scroll_area->viewport(), QScroller::LeftMouseButtonGesture); // swipe to reach hidden tabs
+#endif
     scroll_area->setStyleSheet("QScrollArea{border:none;background:transparent;}");
     auto* container = new QWidget(scroll_area);
     tab_layout_ = new QHBoxLayout(container);

@@ -22,6 +22,13 @@ endif()
 
 file(READ "${FILE}" _content)
 
+# iOS (-DQGV_STATIC=ON): no app-private dylibs there, so build it as a static lib.
+if(QGV_STATIC AND _content MATCHES "add_library\\(qgeoview SHARED")
+    string(REPLACE "add_library(qgeoview SHARED" "add_library(qgeoview STATIC" _content "${_content}")
+    file(WRITE "${FILE}" "${_content}")
+    message(STATUS "qgeoview_remove_agl: building qgeoview as a static library")
+endif()
+
 # Check if AGL is present before patching (idempotent — safe to run twice)
 string(FIND "${_content}" "AGL" _agl_pos)
 if(_agl_pos EQUAL -1)

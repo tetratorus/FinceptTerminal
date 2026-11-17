@@ -1211,6 +1211,13 @@ int main(int argc, char* argv[]) {
         setup_status.needs_setup = false;
     }
 
+#ifdef Q_OS_IOS
+    // No embedded Python on iOS: boot straight into the app; Python-backed
+    // features report themselves unavailable.
+    setup_status.needs_setup = false;
+    setup_status.needs_package_sync = false;
+#endif
+
     if (setup_status.needs_setup) {
         LOG_INFO("App", "Python environment not ready — showing setup screen");
 
@@ -1332,7 +1339,11 @@ int main(int argc, char* argv[]) {
         const int primary_id = saved_ids.isEmpty() ? 0 : saved_ids.first();
         auto* primary = new fincept::WindowFrame(primary_id);
         primary->setAttribute(Qt::WA_DeleteOnClose);
+#ifdef Q_OS_IOS
+        primary->showMaximized(); // fill the screen's safe area
+#else
         primary->show();
+#endif
 
         // Smoke test: once the window has painted, walk every screen and exit
         // with the result. Deferred so the shell + router are fully wired. The

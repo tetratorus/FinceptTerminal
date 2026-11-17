@@ -42,7 +42,11 @@ constexpr double kNewsLowCreditThreshold = 20.0;
 
 NewsDetailPanel::NewsDetailPanel(QWidget* parent) : QWidget(parent) {
     setObjectName("newsDetailOverlay");
+#ifdef Q_OS_IOS
+    setMaximumWidth(kPanelWidth); // phone screens are narrower: the panel replaces the feed instead
+#else
     setFixedWidth(kPanelWidth);
+#endif
     hide(); // start hidden — shown on article click
 
     auto* root = new QVBoxLayout(this);

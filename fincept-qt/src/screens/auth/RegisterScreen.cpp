@@ -111,7 +111,9 @@ RegisterScreen::RegisterScreen(QWidget* parent) : QWidget(parent) {
     root->addLayout(overlay, 1);
 
     pages_ = new QStackedWidget;
+#ifndef Q_OS_IOS // a 480px floor is wider than an iPhone screen
     pages_->setMinimumWidth(480);
+#endif
     pages_->setMaximumWidth(620);
     pages_->setStyleSheet("background: transparent;");
 
@@ -422,6 +424,10 @@ void RegisterScreen::build_form_page() {
     // Enter anywhere in the form submits, matching the login screen.
     for (QLineEdit* w : {first_name_, last_name_, username_, email_, country_code_, phone_, password_, confirm_pw_})
         connect(w, &QLineEdit::returnPressed, this, &RegisterScreen::on_register);
+
+    // Stop touch keyboards (iOS) from auto-capitalising / autocorrecting identifiers.
+    username_->setInputMethodHints(Qt::ImhNoAutoUppercase | Qt::ImhNoPredictiveText);
+    email_->setInputMethodHints(Qt::ImhEmailCharactersOnly | Qt::ImhNoAutoUppercase | Qt::ImhNoPredictiveText);
 
     pages_->addWidget(page);
 }

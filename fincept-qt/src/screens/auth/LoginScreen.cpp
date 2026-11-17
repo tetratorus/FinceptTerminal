@@ -183,7 +183,9 @@ LoginScreen::LoginScreen(QWidget* parent) : QWidget(parent) {
     root->addLayout(overlay, 1);
 
     pages_ = new QStackedWidget;
+#ifndef Q_OS_IOS // a 480px floor is wider than an iPhone screen
     pages_->setMinimumWidth(480);
+#endif
     pages_->setMaximumWidth(620);
     pages_->setStyleSheet("background: transparent;");
 
@@ -340,6 +342,8 @@ void LoginScreen::build_login_page() {
 
     email_input_ = new QLineEdit;
     email_input_->setFixedHeight(34);
+    // Stop touch keyboards (iOS) from auto-capitalising / autocorrecting the address.
+    email_input_->setInputMethodHints(Qt::ImhEmailCharactersOnly | Qt::ImhNoAutoUppercase | Qt::ImhNoPredictiveText);
     email_input_->setStyleSheet(input_style());
     vl->addWidget(email_input_);
 

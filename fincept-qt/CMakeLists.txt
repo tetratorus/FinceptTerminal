@@ -145,7 +145,7 @@ endif()
 # Set install rpaths so the binary looks inside its own bundle for frameworks.
 # Without this, CMake embeds build-tree rpaths (e.g. _deps/qgeoview-build/lib)
 # and CPack IFW fails trying to delete them after macdeployqt already rewrote them.
-if(APPLE)
+if(APPLE AND NOT IOS)
     # If not explicitly provided by the caller/preset, pin the minimum
     # supported macOS version so builds on newer runners do not accidentally
     # produce bundles that require that newer host OS at runtime.
@@ -682,6 +682,9 @@ FetchContent_Declare(
     GIT_TAG        729e6b8b320caa96328968ab27d7db2235e4fb47  # release-0.5.2
     GIT_SHALLOW    TRUE
 )
+if(IOS)  # md2html is an unused CLI; iOS executables must be bundles with install rules
+    set(BUILD_MD2HTML_EXECUTABLE OFF CACHE BOOL "" FORCE)
+endif()
 FetchContent_MakeAvailable(md4c)
 # md4c builds md4c (parser) and md4c-html (HTML renderer) as static libs.
 # Disable any example/test targets it may expose.
@@ -730,6 +733,7 @@ FetchContent_Declare(
     # upstream pushes past it. Repo is tiny; a full clone costs nothing.
     PATCH_COMMAND  ${CMAKE_COMMAND}
         -DFILE=<SOURCE_DIR>/lib/CMakeLists.txt
+        -DQGV_STATIC=${IOS}
         -P "${CMAKE_CURRENT_SOURCE_DIR}/cmake/patches/qgeoview_remove_agl.cmake"
 )
 set(QGV_BUILD_SAMPLES OFF CACHE BOOL "" FORCE)
@@ -774,12 +778,21 @@ endif()
 set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(BUILD_STATIC   ON  CACHE BOOL "" FORCE)  # static lib: simpler deployment, no extra DLL
 set(QT_VERSION_MAJOR 6 CACHE STRING "" FORCE)
+# QtADS treats every non-macOS Unix as X11 (#include <xcb/xcb.h>); iOS is Unix too.
+set(_FINCEPT_QTADS_PATCH "")
+if(IOS)
+    set(_FINCEPT_QTADS_PATCH PATCH_COMMAND
+        perl -pi -e "s/Q_OS_MACOS/Q_OS_DARWIN/g" src/ads_globals.h src/ads_globals.cpp
+            src/DockFocusController.cpp src/DockManager.cpp src/DockOverlay.cpp
+            src/FloatingDockContainer.h src/FloatingDockContainer.cpp src/FloatingDragPreview.cpp)
+endif()
 FetchContent_Declare(
     QtADS
     GIT_REPOSITORY https://github.com/githubuser0xFFFF/Qt-Advanced-Docking-System.git
     GIT_TAG        87cffe5d40307c61141c88b88c10c5e7d181d880  # 4.5.0
     GIT_SHALLOW    TRUE
     UPDATE_DISCONNECTED TRUE
+    ${_FINCEPT_QTADS_PATCH}
 )
 set(ADS_VERSION "4.5.0" CACHE STRING "" FORCE)   # skip git_describe() in qtads CMakeLists
 # qtads src/CMakeLists.txt does include(Versioning) unconditionally but only adds
@@ -2933,6 +2946,15 @@ target_include_directories(FinceptTerminal PRIVATE
     src
 )
 
+# iOS: QtCore has no QProcess there; a stub that always fails to start stands in.
+# See docs/IOS.md.
+if(IOS)
+    target_include_directories(FinceptTerminal BEFORE PRIVATE src/platform/ios/include)
+    target_sources(FinceptTerminal PRIVATE src/platform/ios/IosProcessStub.h)
+    # Qt's iOS FFmpeg media plugin needs FFmpeg libs Qt doesn't ship; use AVFoundation.
+    qt_import_plugins(FinceptTerminal EXCLUDE Qt6::QFFmpegMediaPlugin)
+endif()
+
 
 
 # ── Translations (.ts → .qm → resources) ──────────────────────────────────────
@@ -2993,9 +3015,15 @@ if(APPLE)
         MACOSX_BUNDLE_ICON_FILE         "fincept.icns"
         MACOSX_BUNDLE_COPYRIGHT         "Copyright © 2025 Fincept Corporation"
     )
+    if(IOS)
+        set_target_properties(FinceptTerminal PROPERTIES
+            MACOSX_BUNDLE_INFO_PLIST "${CMAKE_CURRENT_SOURCE_DIR}/packaging/ios/Info.plist.in")
+    endif()
     # Copy .icns into the bundle Resources folder at build time
     set(_FINCEPT_ICNS "${CMAKE_CURRENT_SOURCE_DIR}/resources/fincept.icns")
-    if(EXISTS "${_FINCEPT_ICNS}")
+    if(IOS)
+        # .icns is macOS-only; a stray file at the flat iOS bundle root breaks codesign.
+    elseif(EXISTS "${_FINCEPT_ICNS}")
         target_sources(FinceptTerminal PRIVATE "${_FINCEPT_ICNS}")
         set_source_files_properties("${_FINCEPT_ICNS}"
             PROPERTIES MACOSX_PACKAGE_LOCATION "Resources")
@@ -3494,61 +3522,67 @@ add_custom_command(
     VERBATIM
 )
 add_custom_target(fincept_sync_scripts DEPENDS "${FINCEPT_SCRIPTS_STAMP}")
-add_dependencies(FinceptTerminal fincept_sync_scripts)
+if(NOT IOS)  # no Python interpreter on iOS, so the scripts would be dead weight
+    add_dependencies(FinceptTerminal fincept_sync_scripts)
+endif()
 
 # ── Copy requirements files to build output ──────────────────────────────────
 # PythonSetupManager::find_requirements_file() searches exe_dir/resources/ first.
 # Without this POST_BUILD step the files are only available via cmake --install,
 # causing setup to silently fail in dev/debug builds.
-add_custom_command(TARGET FinceptTerminal POST_BUILD
-    COMMAND ${CMAKE_COMMAND} -E make_directory
-        "$<TARGET_FILE_DIR:FinceptTerminal>/resources"
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${CMAKE_CURRENT_SOURCE_DIR}/resources/requirements-numpy1.txt"
-        "$<TARGET_FILE_DIR:FinceptTerminal>/resources/requirements-numpy1.txt"
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${CMAKE_CURRENT_SOURCE_DIR}/resources/requirements-numpy2.txt"
-        "$<TARGET_FILE_DIR:FinceptTerminal>/resources/requirements-numpy2.txt"
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${CMAKE_CURRENT_SOURCE_DIR}/resources/requirements-numpy2-core.txt"
-        "$<TARGET_FILE_DIR:FinceptTerminal>/resources/requirements-numpy2-core.txt"
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${CMAKE_CURRENT_SOURCE_DIR}/resources/component_catalog.json"
-        "$<TARGET_FILE_DIR:FinceptTerminal>/resources/component_catalog.json"
-    # Python data-connector catalogue (generated by .github/scripts/gen_data_connectors.py);
-    # ConnectorCatalog loads it lazily from exe_dir/resources/ (+ packaged-layout fallbacks).
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${CMAKE_CURRENT_SOURCE_DIR}/resources/data_connectors.json"
-        "$<TARGET_FILE_DIR:FinceptTerminal>/resources/data_connectors.json"
-    COMMAND ${CMAKE_COMMAND} -E make_directory
-        "$<TARGET_FILE_DIR:FinceptTerminal>/resources/wallet"
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${CMAKE_CURRENT_SOURCE_DIR}/resources/wallet/connect.html"
-        "$<TARGET_FILE_DIR:FinceptTerminal>/resources/wallet/connect.html"
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${CMAKE_CURRENT_SOURCE_DIR}/resources/wallet/swap.html"
-        "$<TARGET_FILE_DIR:FinceptTerminal>/resources/wallet/swap.html"
-    COMMAND ${CMAKE_COMMAND} -E make_directory
-        "$<TARGET_FILE_DIR:FinceptTerminal>/resources/wallet/vendor"
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_CURRENT_SOURCE_DIR}/resources/wallet/vendor"
-        "$<TARGET_FILE_DIR:FinceptTerminal>/resources/wallet/vendor"
-    COMMAND ${CMAKE_COMMAND} -E make_directory
-        "$<TARGET_FILE_DIR:FinceptTerminal>/resources/charts"
-    COMMAND ${CMAKE_COMMAND} -E copy_if_different
-        "${CMAKE_CURRENT_SOURCE_DIR}/resources/charts/klinechart.html"
-        "$<TARGET_FILE_DIR:FinceptTerminal>/resources/charts/klinechart.html"
-    COMMAND ${CMAKE_COMMAND} -E make_directory
-        "$<TARGET_FILE_DIR:FinceptTerminal>/resources/charts/vendor"
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_CURRENT_SOURCE_DIR}/resources/charts/vendor"
-        "$<TARGET_FILE_DIR:FinceptTerminal>/resources/charts/vendor"
-    # Prebuilt Fincept Notebook library (manifest + .ipynb files).
-    COMMAND ${CMAKE_COMMAND} -E copy_directory
-        "${CMAKE_CURRENT_SOURCE_DIR}/resources/notebooks"
-        "$<TARGET_FILE_DIR:FinceptTerminal>/resources/notebooks"
-    COMMENT "Copying requirements files to build output..."
-)
+# iOS skips this: a root-level "resources" dir in a flat iOS bundle makes it look like
+# a legacy bundle (installd: "Missing bundle ID"), and none of these files are needed there.
+if(NOT IOS)
+    add_custom_command(TARGET FinceptTerminal POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E make_directory
+            "$<TARGET_FILE_DIR:FinceptTerminal>/resources"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/resources/requirements-numpy1.txt"
+            "$<TARGET_FILE_DIR:FinceptTerminal>/resources/requirements-numpy1.txt"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/resources/requirements-numpy2.txt"
+            "$<TARGET_FILE_DIR:FinceptTerminal>/resources/requirements-numpy2.txt"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/resources/requirements-numpy2-core.txt"
+            "$<TARGET_FILE_DIR:FinceptTerminal>/resources/requirements-numpy2-core.txt"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/resources/component_catalog.json"
+            "$<TARGET_FILE_DIR:FinceptTerminal>/resources/component_catalog.json"
+        # Python data-connector catalogue (generated by .github/scripts/gen_data_connectors.py);
+        # ConnectorCatalog loads it lazily from exe_dir/resources/ (+ packaged-layout fallbacks).
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/resources/data_connectors.json"
+            "$<TARGET_FILE_DIR:FinceptTerminal>/resources/data_connectors.json"
+        COMMAND ${CMAKE_COMMAND} -E make_directory
+            "$<TARGET_FILE_DIR:FinceptTerminal>/resources/wallet"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/resources/wallet/connect.html"
+            "$<TARGET_FILE_DIR:FinceptTerminal>/resources/wallet/connect.html"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/resources/wallet/swap.html"
+            "$<TARGET_FILE_DIR:FinceptTerminal>/resources/wallet/swap.html"
+        COMMAND ${CMAKE_COMMAND} -E make_directory
+            "$<TARGET_FILE_DIR:FinceptTerminal>/resources/wallet/vendor"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_CURRENT_SOURCE_DIR}/resources/wallet/vendor"
+            "$<TARGET_FILE_DIR:FinceptTerminal>/resources/wallet/vendor"
+        COMMAND ${CMAKE_COMMAND} -E make_directory
+            "$<TARGET_FILE_DIR:FinceptTerminal>/resources/charts"
+        COMMAND ${CMAKE_COMMAND} -E copy_if_different
+            "${CMAKE_CURRENT_SOURCE_DIR}/resources/charts/klinechart.html"
+            "$<TARGET_FILE_DIR:FinceptTerminal>/resources/charts/klinechart.html"
+        COMMAND ${CMAKE_COMMAND} -E make_directory
+            "$<TARGET_FILE_DIR:FinceptTerminal>/resources/charts/vendor"
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_CURRENT_SOURCE_DIR}/resources/charts/vendor"
+            "$<TARGET_FILE_DIR:FinceptTerminal>/resources/charts/vendor"
+        # Prebuilt Fincept Notebook library (manifest + .ipynb files).
+        COMMAND ${CMAKE_COMMAND} -E copy_directory
+            "${CMAKE_CURRENT_SOURCE_DIR}/resources/notebooks"
+            "$<TARGET_FILE_DIR:FinceptTerminal>/resources/notebooks"
+        COMMENT "Copying requirements files to build output..."
+    )
+endif()
 
 # Bundle yt-dlp for dashboard YouTube playback on all platforms.
 #
