@@ -88,14 +88,14 @@ int run_services_selftest() {
         QString werr = QStringLiteral("no callback");
         QEventLoop loop;
         QTimer::singleShot(120000, &loop, &QEventLoop::quit);
-        PythonWorker::instance().submit(
-            QStringLiteral("batch_quotes"), QJsonObject{{"symbols", QJsonArray{"AAPL", "MSFT", "^GSPC"}}},
-            [&](bool o, QJsonObject r, QString e) {
-                ok = o;
-                res = std::move(r);
-                werr = std::move(e);
-                loop.quit();
-            });
+        PythonWorker::instance().submit(QStringLiteral("batch_quotes"),
+                                        QJsonObject{{"symbols", QJsonArray{"AAPL", "MSFT", "^GSPC"}}},
+                                        [&](bool o, QJsonObject r, QString e) {
+                                            ok = o;
+                                            res = std::move(r);
+                                            werr = std::move(e);
+                                            loop.quit();
+                                        });
         loop.exec();
         PythonResult wr;
         wr.success = ok;
