@@ -35,9 +35,21 @@ static const PresetChannel kPresets[] = {
 
 static constexpr int kPresetCount = static_cast<int>(sizeof(kPresets) / sizeof(kPresets[0]));
 
+// Only YouTube links are accepted. Arbitrary media URLs would be handed to
+// Qt Multimedia's bundled FFmpeg, whose demuxers/decoders have known memory
+// corruption bugs (e.g. CVE-2026-125251 in the VVC decoder), so untrusted
+// streams must never reach QMediaPlayer::setSource().
 static bool is_youtube_url(const QString& url) {
-    return url.contains("youtube.com/watch") || url.contains("youtu.be/") || url.contains("youtube.com/live") ||
-           url.contains("youtube.com/@");
+    const QUrl u(url, QUrl::StrictMode);
+    if (!u.isValid() || (u.scheme() != "https" && u.scheme() != "http") || !u.userInfo().isEmpty())
+        return false;
+    const QString host = u.host().toLower();
+    const QString path = u.path();
+    if (host == "youtu.be")
+        return path.length() > 1;
+    if (host != "youtube.com" && host != "www.youtube.com" && host != "m.youtube.com")
+        return false;
+    return path == "/watch" || path.startsWith("/live/") || path.startsWith("/@");
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -124,7 +136,7 @@ void VideoPlayerWidget::build_channel_list() {
     irl->setSpacing(4);
 
     url_input_ = new QLineEdit;
-    url_input_->setPlaceholderText(tr("YouTube URL, HLS (.m3u8), MP4, or direct stream..."));
+    url_input_->setPlaceholderText(tr("YouTube URL (youtube.com or youtu.be)..."));
     connect(url_input_, &QLineEdit::returnPressed, this, &VideoPlayerWidget::play_custom_url);
     irl->addWidget(url_input_, 1);
 
@@ -217,6 +229,13 @@ void VideoPlayerWidget::play_custom_url() {
         return;
     if (!url.startsWith("http://") && !url.startsWith("https://"))
         url.prepend("https://");
+    if (!is_youtube_url(url)) {
+        status_label_->setText(tr("Only YouTube links are supported."));
+        status_label_->show();
+        stack_->setCurrentIndex(1);
+        LOG_WARN("VideoPlayer", "Rejected non-YouTube custom stream URL");
+        return;
+    }
     play_url(url, tr("Custom Stream"));
 }
 
@@ -237,7 +256,10 @@ void VideoPlayerWidget::play_url(const QString& url, const QString& title) {
     if (is_youtube_url(url)) {
         resolve_youtube_and_play(url, title);
     } else {
-        play_direct(url);
+        set_loading(false);
+        status_label_->setText(tr("Only YouTube links are supported."));
+        status_label_->show();
+        stack_->setCurrentIndex(1);
     }
 #else
     QDesktopServices::openUrl(QUrl(url));
@@ -313,7 +335,10 @@ void VideoPlayerWidget::resolve_youtube_and_play(const QString& youtube_url, con
     // -f bestvideo+bestaudio/best: best quality with audio
     // --no-playlist: single video only
     // -g: print URL only, don't download
-    proc->start(ytdlp_program, {"-f", "best[ext=mp4]/best", "--no-playlist", "-g", youtube_url});
+    // --use-extractors: YouTube extractors only, so yt-dlp's generic extractor
+    // can't turn a redirect into an arbitrary attacker-hosted media URL.
+    proc->start(ytdlp_program, {"--use-extractors", "youtube.*", "-f", "best[ext=mp4]/best", "--no-playlist", "-g",
+                                "--", youtube_url});
 
     // yt-dlp has no overall deadline of its own: on a stalled network it can
     // sit there indefinitely, leaving "Resolving stream…" on screen forever.
@@ -530,7 +555,7 @@ void VideoPlayerWidget::retranslateUi() {
     if (custom_header_)
         custom_header_->setText(tr("CUSTOM STREAM"));
     if (url_input_)
-        url_input_->setPlaceholderText(tr("YouTube URL, HLS (.m3u8), MP4, or direct stream..."));
+        url_input_->setPlaceholderText(tr("YouTube URL (youtube.com or youtu.be)..."));
     if (play_btn_)
         play_btn_->setText(tr("PLAY"));
     if (helper_label_)
