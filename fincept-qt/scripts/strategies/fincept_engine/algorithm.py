@@ -1989,7 +1989,7 @@ class QCAlgorithm:
             self._indicators[name] = indicator
         return indicator
 
-    def aroon(self, symbol, period=20, resolution=None, selector=None):
+    def aroon(self, symbol, period=25, resolution=None, selector=None):
         """Aroon indicator."""
         name = f"AROON_{symbol}_{period}"
         indicator = SimpleMovingAverage(name, period)
@@ -2462,13 +2462,6 @@ class QCAlgorithm:
         return tickets
 
     # ---- Additional Indicator Shortcuts ----
-
-    def aroon(self, symbol, period=25, resolution=None, selector=None):
-        """Aroon indicator (stub using SMA as placeholder)."""
-        name = f"AROON_{symbol}_{period}"
-        indicator = SimpleMovingAverage(name, period)
-        self._indicators[name] = indicator
-        return indicator
 
     def vwap(self, symbol, resolution=None, selector=None):
         """VWAP indicator (stub)."""

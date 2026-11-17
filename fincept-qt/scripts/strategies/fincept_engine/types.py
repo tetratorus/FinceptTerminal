@@ -242,6 +242,7 @@ class SecurityHolding:
         self.quantity = quantity
         self.average_price = average_price
         self.market_price = market_price
+        self._total_close_profit = 0.0
 
     @property
     def invested(self) -> bool:
@@ -276,14 +277,6 @@ class SecurityHolding:
     @property
     def total_close_profit(self) -> float:
         return self._total_close_profit
-
-    def __init__(self, symbol: Symbol, quantity: float = 0,
-                 average_price: float = 0, market_price: float = 0):
-        self.symbol = symbol
-        self.quantity = quantity
-        self.average_price = average_price
-        self.market_price = market_price
-        self._total_close_profit = 0.0
 
     def update_market_price(self, price: float):
         self.market_price = price
