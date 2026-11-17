@@ -276,6 +276,7 @@ _SVC_PRICE_KEYS = (("price_1d", "1_day"), ("price_1w", "1_week"), ("price_4w", "
 
 def _service_dispatch(argv):
     import json
+    import sys
     if len(argv) != 3 or argv[1] not in _SERVICE_COMMANDS:
         return False
     try:
