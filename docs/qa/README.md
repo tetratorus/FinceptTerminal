@@ -25,8 +25,12 @@ it, plus a screen recording of Tiers 2–3, to the release PR / tag.
 - Use the **release artifact** (installer / AppImage / .deb / .dmg), not a dev build.
 - Test on a **clean machine or a fresh OS user** for SMK-01, and on a machine with
   the **previous release installed** for SMK-02.
-- Have ready: a test Fincept account, one LLM API key (any provider), a CSV of
-  3–5 symbols for the watchlist import, and network access to `api.fincept.in`.
+- SMK-03 through SMK-26 require a **verified Fincept test account** with an
+  inbox you can read for verification and password-reset codes.
+- SMK-22 requires an LLM provider API key.
+- PAPER trading requires a paper account plus a connected quote/market feed.
+- Have ready a CSV of 3–5 symbols for the watchlist import and network access
+  to `api.fincept.in`.
 - Never use a real broker account or LIVE mode for this suite. All trading cases
   are **PAPER** only.
 
@@ -61,10 +65,10 @@ Do not start Tier 2 until Tier 1 is green.
 | SMK-01 | Clean install + first launch | Install the artifact on a clean machine. Launch from the Start menu / launcher / Applications. | App starts with no missing-DLL/library or Gatekeeper error. Python setup screen appears and installs the essentials (or "Continue without Python" works). Login screen follows. |
 | SMK-02 | Upgrade in place | On a machine with the previous release and an existing profile, install over it and launch. | Version in **About** is the new one. Existing login, watchlists, portfolios, notes and settings are still there. No crash-recovery prompt. |
 | SMK-03 | Register / login | Register a new account (or log in with the test account). Log out and log back in. | Login succeeds and lands on the Dashboard. Wrong password shows an inline error, not a crash. |
-| SMK-04 | Forgot password | From Login, open **Forgot password**, submit the test email. | Confirmation shown; Back returns to Login. |
-| SMK-05 | PIN lock | Settings → Security: set a PIN. Use **Lock Now**. Unlock with a wrong PIN, then the right one. | Terminal locks; wrong PIN rejected; right PIN restores the same layout. Restarting the app asks for the PIN. |
+| SMK-04 | Forgot password | From Sign In, open **Forgot password**, submit the test email. The confirmation page shows **I HAVE THE CODE** and **RESEND**. Check for a return route to Sign In; its absence is a failure, not a reason to skip the check. | Confirmation shown; Back returns to Login. |
+| SMK-05 | PIN lock | Create the initial PIN first, then lock/unlock: Settings → Security → set PIN (**Change PIN** appears only once a PIN exists). Use **Lock Now**. Unlock with a wrong PIN, then the right one. | Terminal locks; wrong PIN rejected; right PIN restores the same layout. Restarting the app asks for the PIN. |
 | SMK-06 | Dashboard | After login, wait 30 s. | Ticker bar and Market Pulse populate with live values; status bar shows connected; no error toasts. |
-| SMK-07 | Navigation | Open 10 screens via the toolbar menus and 5 via the command bar (type the screen name, Enter): Markets, News, Watchlist, Portfolio, Equity Trading, Crypto Trading, Backtesting, AI Chat, Economics, Screener, Equity Research, Settings, Docs, About, Launchpad. | Each opens in a dock panel with content (no blank panel). Ctrl+Tab cycles panels. |
+| SMK-07 | Navigation | For direct navigation, use the toolbar's **Navigate** menu: **Markets & Data → Economics / GOVT Data / DBnomics**; **Trading & Portfolio → Equity Trading / Watchlist**; **Research & Intelligence → Equity Research**; **Tools → MCP Servers / Notes**; **Docs**; **About** (10 screens total). Separately, use command-bar dock commands, pressing Enter after each: `economics add watchlist`, `economics add equity_trading`, `economics add equity_research`, `economics add docs`, `economics add about` (5 docked screens). | Each opens in a dock panel with content (no blank panel). Ctrl+Tab cycles panels. |
 | SMK-08 | Workspace persistence | Open 4 panels, drag one to a new dock position, tear one off into a floating window. Quit and relaunch. | The same panels and positions are restored. |
 | SMK-09 | Multi-window | Ctrl+Shift+N (or Launchpad → **New Window**). Open a screen in the new window. Close it. | Second window works independently; closing it leaves the primary running. |
 | SMK-10 | Crash recovery | Kill the process (Task Manager / `kill -9`) with several panels open. Relaunch. | Crash-recovery dialog offers to restore; Restore brings back the panels. |
@@ -82,13 +86,13 @@ Do not start Tier 2 until Tier 1 is green.
 | SMK-17 | P0 | Charting | From Equity Trading or Equity Research, open a chart for AAPL; switch timeframe and add one indicator. | Candles render; timeframe and indicator update the chart. |
 | SMK-18 | P1 | Equity research | Equity Research → search MSFT. | Company profile, financials and key ratios load. |
 | SMK-19 | P1 | Screener | Run a screen with 2 filters. | Results table populates and sorts. |
-| SMK-20 | P1 | Economics data | Economics (or DBnomics / Gov Data): load one series (e.g. US CPI). | Series chart and table render. |
+| SMK-20 | P1 | Economics data | Navigate → Markets & Data → Economics → World Bank: select United States and **Inflation, CPI (annual %)** (`FP.CPI.TOTL.ZG`), then load the series. A timeout or error message counts as FAIL. | Series chart and table render. |
 | SMK-21 | P0 | Backtest | Algo Trading → pick a built-in strategy → **Run Backtest** (or Backtesting screen with defaults). | Backtest completes; equity curve and metrics shown. Requires the Python env from SMK-01. |
 | SMK-22 | P0 | AI Chat | Settings → LLM Config: add the test key. AI Chat (F9): ask "What is AAPL trading at?". | Streaming answer arrives; a tool call fetches a quote; no "provider not configured" warning. |
 | SMK-23 | P1 | MCP servers | MCP Servers screen: list built-in tools; enable/disable one. | Tool list loads; toggle persists. |
 | SMK-24 | P1 | Notes / Report builder | Create a note, then a report with one chart; export to PDF. | Note persists after restart; PDF opens. |
 | SMK-25 | P0 | Settings persistence | Change theme (Appearance), one keybinding (Keybindings) and a log level (Logging). Restart. | All three changes persist; the new keybinding works. |
-| SMK-26 | P1 | Profiles | Launchpad → **Switch Profile…** → create `smoke-2`. | App relaunches in an empty profile; switching back restores the original data. |
+| SMK-26 | P1 | Profiles | Launchpad → **Switch Profile…** → create `smoke-2`; alternate route: Settings → Profiles → **Create & Switch**. | App relaunches in an empty profile; switching back restores the original data. |
 | SMK-27 | P1 | Update check | About / Settings → check for updates on the previous release build. | The new version from `updates.json` is offered with the right download link. |
 | SMK-28 | P0 | Clean exit + uninstall | Quit from the menu. Uninstall. | Process exits within 5 s (no zombie); uninstaller removes the app. |
 
