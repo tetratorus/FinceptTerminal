@@ -74,10 +74,10 @@ run_with_timeout() {
 
 # Echo the discovered self-test flags, one per line. Falls back silently.
 discover_selftests() {
-    local bin="$1" listing rc=1
+    local bin="$1" profile="$2" listing rc=1
     if grep -aq -- '--selftest-list' "$bin" 2>/dev/null; then
         listing="$(mktemp)"
-        if run_with_timeout 60 "$bin" --selftest-list >"$listing" 2>/dev/null; then
+        if run_with_timeout 60 "$bin" --profile "$profile" --selftest-list >"$listing" 2>/dev/null; then
             rc=0
         fi
         if [ "$rc" -eq 0 ] && [ -s "$listing" ]; then
@@ -138,7 +138,7 @@ case "$MODE" in
             fi
             echo "::endgroup::"
         done <<EOF
-$(discover_selftests "$BINARY")
+$(discover_selftests "$BINARY" "$PROFILE")
 EOF
         if [ -n "$FAILED" ]; then
             echo "::error::self-tests failed:${FAILED}"
